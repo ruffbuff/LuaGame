@@ -1,11 +1,21 @@
 local socket = require('socket')
 
+local settings = {
+    playerColors = {
+        {1, 0, 0},
+        {0, 0, 1},
+        {0, 1, 0},
+        {1, 1, 0},
+        {1, 0, 1},
+    }
+}
+
 local server = {
     udp = socket.udp(),
     clients = {},
     gameStarted = true,
     lastUpdate = socket.gettime(),
-    chatMessages = {}  -- Добавлено для хранения сообщений чата
+    chatMessages = {}
 }
 
 function server.start()
@@ -22,12 +32,19 @@ function server.update()
             server.udp:sendto(data, msg_or_ip, port_or_nil)
         elseif data == "JOIN" then
             local id = #server.clients + 1
-            server.clients[id] = {ip = msg_or_ip, port = port_or_nil, x = 1568, y = 1568, lastUpdate = currentTime}
-            server.udp:sendto("ID:" .. id, msg_or_ip, port_or_nil)
+            local colorIndex = (id - 1) % #settings.playerColors + 1
+            local color = settings.playerColors[colorIndex]
+            server.clients[id] = {ip = msg_or_ip, port = port_or_nil, x = 1568, y = 1568, lastUpdate = currentTime, color = color}
+            server.udp:sendto("ID:" .. id .. "," .. color[1] .. "," .. color[2] .. "," .. color[3], msg_or_ip, port_or_nil)
             server.udp:sendto("START", msg_or_ip, port_or_nil)
             print("New client connected with ID: " .. id)
 
-            -- Отправляем историю чата новому игроку
+            for clientId, client in pairs(server.clients) do
+                if clientId ~= id then
+                    server.udp:sendto("COLOR:" .. clientId .. "," .. client.color[1] .. "," .. client.color[2] .. "," .. client.color[3], msg_or_ip, port_or_nil)
+                end
+            end
+
             for _, message in ipairs(server.chatMessages) do
                 server.udp:sendto("CHAT:" .. message, msg_or_ip, port_or_nil)
             end
@@ -39,9 +56,22 @@ function server.update()
             end
         elseif data:sub(1, 5) == "CHAT:" then
             local message = data:sub(6)
-            table.insert(server.chatMessages, message)  -- Сохраняем сообщение
+            table.insert(server.chatMessages, message)
             for id, client in pairs(server.clients) do
                 server.udp:sendto("CHAT:" .. message, client.ip, client.port)
+            end
+        elseif data:sub(1, 6) == "COLOR:" then
+            local id, r, g, b = data:match("COLOR:(%d+),(%f[%d%.]),(%f[%d%.]),(%f[%d%.])")
+            id, r, g, b = tonumber(id), tonumber(r), tonumber(g), tonumber(b)
+            if server.clients[id] then
+                server.clients[id].color = {r, g, b}
+                print("Client " .. id .. " changed color to {" .. r .. ", " .. g .. ", " .. b .. "}")
+
+                for clientId, client in pairs(server.clients) do
+                    if clientId ~= id then
+                        server.udp:sendto("COLOR:" .. id .. "," .. r .. "," .. g .. "," .. b, client.ip, client.port)
+                    end
+                end
             end
         else
             local id, x, y = data:match("(%d+),(%d+),(%d+)")
@@ -61,15 +91,15 @@ function server.update()
     end
 
     if currentTime - server.lastUpdate >= 1/20 then
-        local allPositions = ""
+        local allData = ""
         for id, client in pairs(server.clients) do
-            if allPositions ~= "" then
-                allPositions = allPositions .. ";"
+            if allData ~= "" then
+                allData = allData .. ";"
             end
-            allPositions = allPositions .. id .. "," .. math.floor(client.x) .. "," .. math.floor(client.y)
+            allData = allData .. id .. "," .. math.floor(client.x) .. "," .. math.floor(client.y) .. "," .. client.color[1] .. "," .. client.color[2] .. "," .. client.color[3]
         end
         for id, client in pairs(server.clients) do
-            server.udp:sendto(allPositions, client.ip, client.port)
+            server.udp:sendto(allData, client.ip, client.port)
         end
         server.lastUpdate = currentTime
     end

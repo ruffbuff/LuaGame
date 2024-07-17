@@ -9,7 +9,7 @@ local minimap = {}
 function minimap.draw()
     local mapWidth = 200
     local mapHeight = 200
-    local mapX = love.graphics.getWidth() - mapWidth - 10
+    local mapX = 10
     local mapY = 10
 
     love.graphics.setColor(1, 1, 1, 0.5)
@@ -30,13 +30,18 @@ function minimap.draw()
     local playerColorIndex = (network.id - 1) % #settings.playerColors + 1
     local playerColor = settings.playerColors[playerColorIndex]
 
-    love.graphics.setColor(playerColor[1], playerColor[2], playerColor[3])
+
+    love.graphics.setColor(settings.playerColor[1], settings.playerColor[2], settings.playerColor[3])
     love.graphics.circle("fill", mapX + playerX, mapY + playerY, 4)
 
     for id, otherPlayer in pairs(player.otherPlayers) do
-        local colorIndex = (id - 1) % #settings.playerColors + 1
-        local color = settings.playerColors[colorIndex]
-        love.graphics.setColor(color[1], color[2], color[3])
+        if otherPlayer.color then
+            love.graphics.setColor(otherPlayer.color[1], otherPlayer.color[2], otherPlayer.color[3])
+        else
+            local colorIndex = (id - 1) % #settings.playerColors + 1
+            local color = settings.playerColors[colorIndex]
+            love.graphics.setColor(color[1], color[2], color[3])
+        end
         love.graphics.circle("fill", mapX + (otherPlayer.x * mapScale), mapY + (otherPlayer.y * mapScale), 3)
     end
 end

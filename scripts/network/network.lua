@@ -1,11 +1,12 @@
 -- scripts/network/network.lua
 
 local socket = require("socket")
+local settings = require("scripts.main.settings")
 
 local network = {
     udp = socket.udp(),
-    address = "localhost",
-    port = 12345,
+    address = nil,
+    port = nil,
     players = {},
     id = nil,
     lastUpdate = socket.gettime(),
@@ -15,12 +16,27 @@ local network = {
     chatCallback = nil
 }
 
-function network.connectToServer()
+function network.connectToServer(address, port)
+    network.address = address
+    network.port = port
     network.udp:setpeername(network.address, network.port)
     network.udp:settimeout(0)
     network.udp:send("JOIN")
     network.connected = true
-    print("Attempting to connect to server...")
+    print("Attempting to connect to server at " .. address .. ":" .. port)
+end
+
+function network.setPlayerColor(color)
+    if network.id and network.players[network.id] then
+        network.players[network.id].color = color
+    end
+end
+
+function network.sendPlayerColor(color)
+    if network.id then
+        local message = string.format("COLOR:%d,%f,%f,%f", network.id, color[1], color[2], color[3])
+        network.udp:send(message)
+    end
 end
 
 function network.update()
@@ -38,10 +54,18 @@ function network.update()
                 local pingTime = tonumber(data:sub(6))
                 network.ping = (currentTime - pingTime) * 1000
             elseif data:sub(1,3) == "ID:" then
-                network.id = tonumber(data:sub(4))
+                local id, r, g, b = data:match("ID:(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
+                network.id = tonumber(id)
+                settings.playerColor = {tonumber(r), tonumber(g), tonumber(b)}
                 network.players[network.id] = {x = 1568, y = 1568}
                 print("Connected to server with ID: " .. network.id)
                 return "ID_RECEIVED"
+            elseif data:sub(1, 6) == "COLOR:" then
+                local id, r, g, b = data:match("COLOR:(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
+                id, r, g, b = tonumber(id), tonumber(r), tonumber(g), tonumber(b)
+                if network.players[id] then
+                    network.players[id].color = {r, g, b}
+                end
             elseif data == "START" then
                 return "START"
             elseif data:sub(1, 5) == "CHAT:" then
@@ -52,10 +76,10 @@ function network.update()
             else
                 local newPlayers = {}
                 for playerData in data:gmatch("[^;]+") do
-                    local id, x, y = playerData:match("(%d+),(%d+),(%d+)")
-                    if id and x and y then
-                        id, x, y = tonumber(id), tonumber(x), tonumber(y)
-                        newPlayers[id] = {x = x, y = y}
+                    local id, x, y, r, g, b = playerData:match("(%d+),(%d+),(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
+                    if id and x and y and r and g and b then
+                        id, x, y, r, g, b = tonumber(id), tonumber(x), tonumber(y), tonumber(r), tonumber(g), tonumber(b)
+                        newPlayers[id] = {x = x, y = y, color = {r, g, b}}
                     else
                         print("Invalid player data received: " .. playerData)
                     end

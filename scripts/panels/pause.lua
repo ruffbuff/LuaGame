@@ -6,6 +6,7 @@ local pause = {}
 
 local buttons = {
     {text = "Resume", action = function() pause.resume() end},
+    {text = "Settings", action = function() pause.openSettings() end},
     {text = "Quit to Menu", action = function() pause.quitToMenu() end}
 }
 

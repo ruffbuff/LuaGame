@@ -17,7 +17,7 @@ function player.load()
 end
 
 function player.update(dt, chat)
-    if not chat.isActive then  -- Изменено условие
+    if not chat.isActive then
         local dx, dy = 0, 0
 
         if love.keyboard.isDown(unpack(settings.MOVE_LEFT_KEY)) then dx = dx - 1 end
@@ -68,9 +68,15 @@ function player.draw()
     end
 
     for id, p in pairs(network.players) do
-        local colorIndex = (id - 1) % #settings.playerColors + 1
-        local color = settings.playerColors[colorIndex]
-        love.graphics.setColor(color[1], color[2], color[3])
+        if id == network.id then
+            love.graphics.setColor(settings.playerColor[1], settings.playerColor[2], settings.playerColor[3])
+        elseif p.color then
+            love.graphics.setColor(p.color[1], p.color[2], p.color[3])
+        else
+            local colorIndex = (id - 1) % #settings.playerColors + 1
+            local color = settings.playerColors[colorIndex]
+            love.graphics.setColor(color[1], color[2], color[3])
+        end
         love.graphics.rectangle('fill', p.x, p.y, player.size, player.size)
     end
 end

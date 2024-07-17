@@ -7,14 +7,15 @@ local world = require("scripts.world.world")
 local camera = require("scripts.player.camera")
 local menu = require("scripts.panels.menu")
 local pause = require("scripts.panels.pause")
+local settingsModal = require("scripts.panels.settings")
 local network = require("scripts.network.network")
 local minimap = require("scripts.player.minimap")
 local chat = require("scripts.player.chat")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 
-local function startGame()
-    network.connectToServer()
+local function startGame(address, port)
+    network.connectToServer(address, port)
     gameState = "connecting"
 end
 
@@ -34,6 +35,7 @@ function love.load(dt)
 
     menu.load()
     pause.load()
+    settingsModal.load()
 
     menu.startGame = startGame
     chat.load()
@@ -41,6 +43,10 @@ function love.load(dt)
 
     pause.resume = function()
         gameState = "game"
+    end
+
+    pause.openSettings = function()
+        settingsModal.active = true
     end
 
     pause.quitToMenu = function()
@@ -75,6 +81,10 @@ function love.update(dt)
         camera.update(dt)
     end
 
+    if settingsModal.active then
+        settingsModal.update(dt)
+    end
+
     chat.update(dt)
 end
 
@@ -95,6 +105,9 @@ function love.draw()
         player.draw()
         camera.unset()
         pause.draw()
+        if settingsModal.active then
+            settingsModal.draw()
+        end
     end
 end
 
@@ -109,7 +122,11 @@ function love.keypressed(key)
         elseif key == settings.PAUSE_TOGGLE_KEY and gameState == "game" then
             gameState = "pause"
         elseif key == settings.PAUSE_TOGGLE_KEY and gameState == "pause" then
-            gameState = "game"
+            if settingsModal.active then
+                settingsModal.active = false
+            else
+                gameState = "game"
+            end
         elseif key == settings.FULLSCREEN_TOGGLE_KEY then
             love.window.setFullscreen(not love.window.getFullscreen())
         end
@@ -125,7 +142,11 @@ function love.mousepressed(x, y, button)
     if gameState == "menu" then
         menu.mousepressed(x, y, button)
     elseif gameState == "pause" then
-        pause.mousepressed(x, y, button)
+        if settingsModal.active then
+            settingsModal.mousepressed(x, y, button, network)
+        else
+            pause.mousepressed(x, y, button)
+        end
     end
 end
 

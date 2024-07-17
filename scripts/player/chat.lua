@@ -73,7 +73,6 @@ function chat.wrapText(text, maxWidth)
                     addLine(currentLine)
                     currentLine = word
                 else
-                    -- Если слово длиннее maxWidth, разбиваем его
                     local subWord = ""
                     for j = 1, #word do
                         local char = word:sub(j, j)
