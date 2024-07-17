@@ -1,7 +1,7 @@
 -- scripts/main/settings.lua
 
 local settings = {
-    GAME_VERSION = "0.1.6",
+    GAME_VERSION = "0.1.7",
     GAME_NAME = "LuaGame",
     TILE_SIZE = 64,
     WORLD_WIDTH = 50,
@@ -13,6 +13,7 @@ local settings = {
     MOVE_LEFT_KEY = "a",
     MOVE_RIGHT_KEY = "d",
     MOVE_FAST_KEY = "lshift",
+    DASH_KEY = "space",
     PAUSE_TOGGLE_KEY = "escape",
     WINDOW_WIDTH = 1280,
     WINDOW_HEIGHT = 720,

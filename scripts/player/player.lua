@@ -15,6 +15,8 @@ local player = {
     colliderSize = settings.TILE_SIZE * 0.8,
     colliderOffset = settings.TILE_SIZE * 0.1,
     currentSpeed = 0,
+    dashCooldown = 0,
+    dashCooldownDuration = 1,
     baseSpeed = settings.PLAYER_SPEED,
     fastMultiplier = 2,
     otherPlayers = {},
@@ -38,6 +40,43 @@ local function resolveCollision(newX, newY)
     end
 end
 
+function player.dash(dx, dy)
+    if player.dashCooldown <= 0 then
+        local dashDistance = 3 * settings.TILE_SIZE
+        local newX, newY = player.x, player.y
+        
+        if dx ~= 0 then
+            newX = player.x + dx * dashDistance
+        end
+        if dy ~= 0 then
+            newY = player.y + dy * dashDistance
+        end
+
+        newX, newY = resolveCollision(newX, newY)
+        newX = math.max(0, math.min(newX, settings.WORLD_WIDTH * settings.TILE_SIZE - player.size))
+        newY = math.max(0, math.min(newY, settings.WORLD_HEIGHT * settings.TILE_SIZE - player.size))
+
+        local actualDashX = newX - player.x
+        local actualDashY = newY - player.y
+
+        if math.abs(actualDashX) > dashDistance then
+            newX = player.x + (actualDashX / math.abs(actualDashX)) * dashDistance
+        end
+        if math.abs(actualDashY) > dashDistance then
+            newY = player.y + (actualDashY / math.abs(actualDashY)) * dashDistance
+        end
+
+        player.x, player.y = newX, newY
+
+        if network.id and network.players[network.id] then
+            network.players[network.id].x = player.x
+            network.players[network.id].y = player.y
+        end
+
+        player.dashCooldown = player.dashCooldownDuration
+    end
+end
+
 function player.update(dt, chat)
     if not chat.isActive then
         local dx, dy = 0, 0
@@ -50,6 +89,14 @@ function player.update(dt, chat)
         if dx ~= 0 and dy ~= 0 then
             dx = dx / math.sqrt(2)
             dy = dy / math.sqrt(2)
+        end
+
+        player.dashCooldown = math.max(0, player.dashCooldown - dt)
+
+        if love.keyboard.isDown(settings.DASH_KEY) then
+            if dx ~= 0 or dy ~= 0 then
+                player.dash(dx, dy)
+            end
         end
 
         local speedMultiplier = love.keyboard.isDown(settings.MOVE_FAST_KEY) and player.fastMultiplier or 1
@@ -74,8 +121,7 @@ function player.update(dt, chat)
         if player.currentItem then
             player.currentItem:update(dt, player)
         end
-        
-        -- Обнуляем скорость, если игрок не на крюке
+
         if not (player.currentItem and player.currentItem.state == "attached") then
             player.velocityX = 0
             player.velocityY = 0
