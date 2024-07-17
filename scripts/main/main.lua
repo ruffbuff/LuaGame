@@ -8,12 +8,14 @@ local camera = require("scripts.player.camera")
 local menu = require("scripts.panels.menu")
 local pause = require("scripts.panels.pause")
 local network = require("scripts.network.network")
+local minimap = require("scripts.player.minimap")
+local chat = require("scripts.player.chat")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 
 local function startGame()
     network.connectToServer()
-    gameState = "connecting"  -- Изменено с "waiting" на "connecting"
+    gameState = "connecting"
 end
 
 local function resetGame()
@@ -22,7 +24,7 @@ local function resetGame()
     camera.load()
 end
 
-function love.load()
+function love.load(dt)
     love.window.setMode(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, {
         resizable = settings.WINDOW_RESIZABLE,
         minwidth = 800,
@@ -32,26 +34,28 @@ function love.load()
 
     menu.load()
     pause.load()
-    
+
     menu.startGame = startGame
-    
+    chat.load()
+    love.keyboard.setKeyRepeat(true)
+
     pause.resume = function()
         gameState = "game"
     end
-    
+
     pause.quitToMenu = function()
         network.disconnect()
         gameState = "menu"
     end
+
+    network.setChatCallback(chat.receiveMessage)
 end
 
 function love.update(dt)
     local networkStatus = network.update()
     if networkStatus then
-        print("Network status: " .. networkStatus)
         if networkStatus == "ID_RECEIVED" or networkStatus == "START" then
             if gameState ~= "game" then
-                print("Game is starting")
                 resetGame()
                 gameState = "game"
             end
@@ -60,26 +64,29 @@ function love.update(dt)
 
     if gameState == "game" then
         world.update(dt)
-        player.update(dt)
+        player.update(dt, chat)
         camera.update(dt)
     elseif gameState == "menu" then
         menu.update(dt)
     elseif gameState == "pause" then
         pause.update(dt)
         world.update(dt)
-        player.update(dt)
+        player.update(dt, chat)
         camera.update(dt)
     end
+
+    chat.update(dt)
 end
 
 function love.draw()
     if gameState == "game" then
+        debug.draw(player, network)
         camera.set()
         world.draw()
         player.draw()
         camera.unset()
-        debug.draw(player, network)
-        love.graphics.print("Network players: " .. tostring(#network.players), 10, love.graphics.getHeight() - 30)
+        minimap.draw()
+        chat.draw()
     elseif gameState == "menu" then
         menu.draw()
     elseif gameState == "pause" then
@@ -91,21 +98,30 @@ function love.draw()
     end
 end
 
+function love.textinput(t)
+    chat.textinput(t)
+end
+
 function love.keypressed(key)
-    if key == settings.DEBUG_TOGGLE_KEY then
-        debug.toggle()
-    elseif key == settings.PAUSE_TOGGLE_KEY then
-        if gameState == "game" then
+    if not chat.keypressed(key) then
+        if key == settings.DEBUG_TOGGLE_KEY then
+            debug.toggle()
+        elseif key == settings.PAUSE_TOGGLE_KEY and gameState == "game" then
             gameState = "pause"
-        elseif gameState == "pause" then
+        elseif key == settings.PAUSE_TOGGLE_KEY and gameState == "pause" then
             gameState = "game"
+        elseif key == settings.FULLSCREEN_TOGGLE_KEY then
+            love.window.setFullscreen(not love.window.getFullscreen())
         end
-    elseif key == settings.FULLSCREEN_TOGGLE_KEY then
-        love.window.setFullscreen(not love.window.getFullscreen())
     end
 end
 
+function love.wheelmoved(x, y)
+    chat.wheelmoved(x, y)
+end
+
 function love.mousepressed(x, y, button)
+    chat.mousepressed(x, y, button)
     if gameState == "menu" then
         menu.mousepressed(x, y, button)
     elseif gameState == "pause" then

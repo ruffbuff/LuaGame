@@ -7,7 +7,7 @@ local camera = {
     x = 0,
     y = 0,
     scale = 1,
-    smoothness = 0.04,  -- Меньшее значение = более плавное движение
+    smoothness = 0.04,
     width = love.graphics.getWidth(),
     height = love.graphics.getHeight()
 }
@@ -24,7 +24,6 @@ function camera.update(dt)
     camera.x = camera.x + (targetX - camera.x) * camera.smoothness
     camera.y = camera.y + (targetY - camera.y) * camera.smoothness
 
-    -- Ограничение камеры в пределах мира
     camera.x = math.max(0, math.min(camera.x, settings.WORLD_WIDTH * settings.TILE_SIZE - camera.width))
     camera.y = math.max(0, math.min(camera.y, settings.WORLD_HEIGHT * settings.TILE_SIZE - camera.height))
 end

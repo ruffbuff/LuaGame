@@ -1,8 +1,8 @@
 -- scripts/main/settings.lua
 
 local settings = {
-    GAME_VERSION = "0.1.0",
-    GAME_NAME = "GameName",
+    GAME_VERSION = "0.1.1",
+    GAME_NAME = "LuaGame",
     TILE_SIZE = 64,
     WORLD_WIDTH = 50,
     WORLD_HEIGHT = 50,
@@ -17,7 +17,21 @@ local settings = {
     WINDOW_WIDTH = 1280,
     WINDOW_HEIGHT = 720,
     WINDOW_RESIZABLE = true,
-    FULLSCREEN_TOGGLE_KEY = "f11"
+    FULLSCREEN_TOGGLE_KEY = "f11",
+
+    playerColors = {
+        {1, 0, 0},  -- красный
+        {0, 0, 1},  -- синий
+        {0, 1, 0},  -- зеленый
+        {1, 1, 0},  -- желтый
+        {1, 0, 1},  -- пурпурный
+    },
+
+    world = {
+        width = 50,
+        height = 50,
+        tileSize = 64,
+    },
 }
 
 return settings

@@ -1,12 +1,11 @@
--- server.lua
-
 local socket = require('socket')
 
 local server = {
     udp = socket.udp(),
     clients = {},
-    gameStarted = true,  -- Игра всегда запущена
-    lastUpdate = socket.gettime()
+    gameStarted = true,
+    lastUpdate = socket.gettime(),
+    chatMessages = {}  -- Добавлено для хранения сообщений чата
 }
 
 function server.start()
@@ -19,17 +18,30 @@ function server.update()
     local currentTime = socket.gettime()
     local data, msg_or_ip, port_or_nil = server.udp:receivefrom()
     if data then
-        if data == "JOIN" then
+        if data:sub(1, 5) == "PING:" then
+            server.udp:sendto(data, msg_or_ip, port_or_nil)
+        elseif data == "JOIN" then
             local id = #server.clients + 1
             server.clients[id] = {ip = msg_or_ip, port = port_or_nil, x = 1568, y = 1568, lastUpdate = currentTime}
             server.udp:sendto("ID:" .. id, msg_or_ip, port_or_nil)
             server.udp:sendto("START", msg_or_ip, port_or_nil)
             print("New client connected with ID: " .. id)
+
+            -- Отправляем историю чата новому игроку
+            for _, message in ipairs(server.chatMessages) do
+                server.udp:sendto("CHAT:" .. message, msg_or_ip, port_or_nil)
+            end
         elseif data:sub(1, 11) == "DISCONNECT:" then
             local id = tonumber(data:sub(12))
             if server.clients[id] then
                 server.clients[id] = nil
                 print("Client " .. id .. " disconnected")
+            end
+        elseif data:sub(1, 5) == "CHAT:" then
+            local message = data:sub(6)
+            table.insert(server.chatMessages, message)  -- Сохраняем сообщение
+            for id, client in pairs(server.clients) do
+                server.udp:sendto("CHAT:" .. message, client.ip, client.port)
             end
         else
             local id, x, y = data:match("(%d+),(%d+),(%d+)")
@@ -41,15 +53,13 @@ function server.update()
         end
     end
 
-    -- Проверка на неактивных клиентов
     for id, client in pairs(server.clients) do
-        if currentTime - client.lastUpdate > 5 then  -- 5 секунд тайм-аут
+        if currentTime - client.lastUpdate > 5 then
             server.clients[id] = nil
             print("Client " .. id .. " timed out")
         end
     end
 
-    -- Send updates to clients every 1/20 second
     if currentTime - server.lastUpdate >= 1/20 then
         local allPositions = ""
         for id, client in pairs(server.clients) do
@@ -63,6 +73,11 @@ function server.update()
         end
         server.lastUpdate = currentTime
     end
+end
+
+function server.quit()
+    server.clients = {}
+    server.chatMessages = {}
 end
 
 server.start()

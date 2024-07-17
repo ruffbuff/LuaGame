@@ -14,7 +14,6 @@ function pause.load()
 end
 
 function pause.update(dt)
-    -- Обновление паузы, если нужно
 end
 
 function pause.draw()
@@ -36,7 +35,7 @@ function pause.draw()
 end
 
 function pause.mousepressed(x, y, button)
-    if button == 1 then  -- Left mouse button
+    if button == 1 then
         for i, btn in ipairs(buttons) do
             local buttonWidth = 200
             local buttonHeight = 50
@@ -51,11 +50,9 @@ function pause.mousepressed(x, y, button)
 end
 
 function pause.resume()
-    -- Эта функция будет определена в main.lua
 end
 
 function pause.quitToMenu()
-    -- Эта функция будет определена в main.lua
 end
 
 return pause

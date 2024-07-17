@@ -14,7 +14,6 @@ function menu.load()
 end
 
 function menu.update(dt)
-    -- Обновление меню, если нужно
 end
 
 function menu.draw()
@@ -33,7 +32,7 @@ function menu.draw()
 end
 
 function menu.mousepressed(x, y, button)
-    if button == 1 then  -- Left mouse button
+    if button == 1 then
         for i, btn in ipairs(buttons) do
             local buttonWidth = 200
             local buttonHeight = 50
@@ -48,7 +47,6 @@ function menu.mousepressed(x, y, button)
 end
 
 function menu.startGame()
-    -- Эта функция будет определена в main.lua
 end
 
 return menu
