@@ -14,8 +14,8 @@ function debug.isEnabled()
     return debug.active
 end
 
-function debug.draw(player, network)
-    if debug.active then
+function debug.draw(player, network, gameState)
+    if debug.active and gameState == "game" then
         love.graphics.setColor(1, 1, 1)
         love.graphics.setFont(love.graphics.newFont(16))
         love.graphics.print("Version: " .. settings.GAME_VERSION, 220, 10)

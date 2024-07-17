@@ -97,7 +97,7 @@ function love.draw()
         camera.unset()
         minimap.draw()
         chat.draw()
-        debug.draw(player, network)
+        debug.draw(player, network, gameState)
     elseif gameState == "menu" then
         menu.draw()
     elseif gameState == "pause" then
@@ -109,7 +109,9 @@ function love.draw()
         if settingsModal.active then
             settingsModal.draw()
         end
-        debug.draw(player, network)
+        if debug.isEnabled() then
+            debug.draw(player, network, gameState)
+        end
     end
 end
 
