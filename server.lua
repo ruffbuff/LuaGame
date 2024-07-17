@@ -61,17 +61,16 @@ function server.update()
                 server.udp:sendto("CHAT:" .. message, client.ip, client.port)
             end
         elseif data:sub(1, 6) == "COLOR:" then
-            local id, r, g, b = data:match("COLOR:(%d+),(%f[%d%.]),(%f[%d%.]),(%f[%d%.])")
+            local id, r, g, b = data:match("COLOR:(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
             id, r, g, b = tonumber(id), tonumber(r), tonumber(g), tonumber(b)
             if server.clients[id] then
                 server.clients[id].color = {r, g, b}
                 print("Client " .. id .. " changed color to {" .. r .. ", " .. g .. ", " .. b .. "}")
-
                 for clientId, client in pairs(server.clients) do
-                    if clientId ~= id then
-                        server.udp:sendto("COLOR:" .. id .. "," .. r .. "," .. g .. "," .. b, client.ip, client.port)
-                    end
+                    server.udp:sendto("COLOR:" .. id .. "," .. r .. "," .. g .. "," .. b, client.ip, client.port)
                 end
+            else
+                print("Received color change for unknown client ID:", id)
             end
         else
             local id, x, y = data:match("(%d+),(%d+),(%d+)")

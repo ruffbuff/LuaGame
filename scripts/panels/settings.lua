@@ -11,17 +11,14 @@ function settingsModal.load()
 end
 
 function settingsModal.update(dt)
-    -- Обновление логики модального окна настроек
 end
 
 function settingsModal.draw()
     if not settingsModal.active then return end
 
-    -- Отрисовка фона модального окна
     love.graphics.setColor(0, 0, 0, 0.7)
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 
-    -- Отрисовка самого модального окна
     love.graphics.setColor(0.2, 0.2, 0.2, 0.9)
     local modalWidth = 600
     local modalHeight = 400
@@ -29,12 +26,10 @@ function settingsModal.draw()
     local modalY = (love.graphics.getHeight() - modalHeight) / 2
     love.graphics.rectangle("fill", modalX, modalY, modalWidth, modalHeight)
 
-    -- Отрисовка заголовка модального окна
     love.graphics.setColor(1, 1, 1)
     love.graphics.setFont(love.graphics.newFont(24))
     love.graphics.printf("Settings", modalX, modalY + 20, modalWidth, "center")
 
-    -- Отрисовка вкладок настроек
     local tabWidth = modalWidth / #settingsModal.tabs
     for i, tab in ipairs(settingsModal.tabs) do
         local tabX = modalX + (i - 1) * tabWidth
@@ -51,13 +46,9 @@ function settingsModal.draw()
     local contentX = modalX + 20
     local contentY = modalY + 120
     if settingsModal.selectedTab == 1 then
-        -- Отрисовка настроек сервера
         love.graphics.printf("Server settings", contentX, contentY, modalWidth - 40, "left")
     elseif settingsModal.selectedTab == 2 then
-        -- Отрисовка настроек игрока
         love.graphics.printf("Player settings", contentX, contentY, modalWidth - 40, "left")
-        
-        -- Настройка цвета игрока
         love.graphics.setColor(1, 1, 1)
         love.graphics.print("Player Color:", contentX, contentY + 40)
         for i, color in ipairs(settings.playerColors) do
@@ -71,7 +62,6 @@ function settingsModal.draw()
             end
         end
     elseif settingsModal.selectedTab == 3 then
-        -- Отрисовка графических настроек
         love.graphics.printf("Graphics settings", contentX, contentY, modalWidth - 40, "left")
     end
 end
@@ -84,7 +74,6 @@ function settingsModal.mousepressed(x, y, button, network)
     local modalX = (love.graphics.getWidth() - modalWidth) / 2
     local modalY = (love.graphics.getHeight() - modalHeight) / 2
 
-    -- Обработка нажатий на вкладки
     local tabWidth = modalWidth / #settingsModal.tabs
     for i, tab in ipairs(settingsModal.tabs) do
         local tabX = modalX + (i - 1) * tabWidth

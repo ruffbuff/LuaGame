@@ -23,7 +23,7 @@ function network.connectToServer(address, port)
     network.udp:settimeout(0)
     network.udp:send("JOIN")
     network.connected = true
-    print("Attempting to connect to server at " .. address .. ":" .. port)
+    print("Connecting to " .. address .. ":" .. port)
 end
 
 function network.setPlayerColor(color)
@@ -36,6 +36,7 @@ function network.sendPlayerColor(color)
     if network.id then
         local message = string.format("COLOR:%d,%f,%f,%f", network.id, color[1], color[2], color[3])
         network.udp:send(message)
+        print("Sent color change message:", message)
     end
 end
 
@@ -65,6 +66,9 @@ function network.update()
                 id, r, g, b = tonumber(id), tonumber(r), tonumber(g), tonumber(b)
                 if network.players[id] then
                     network.players[id].color = {r, g, b}
+                    if id == network.id then
+                        settings.playerColor = {r, g, b}
+                    end
                 end
             elseif data == "START" then
                 return "START"
