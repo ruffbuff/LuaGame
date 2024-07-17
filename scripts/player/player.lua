@@ -4,20 +4,38 @@ local settings = require("scripts.main.settings")
 local network = require("scripts.network.network")
 local tiles = require("scripts.world.tiles")
 local debug = require("scripts.main.debug")
+local items = require("scripts.items.items")
 
 local player = {
     x = 1568,
     y = 1568,
+    velocityX = 0,
+    velocityY = 0,
     size = settings.TILE_SIZE,
-    colliderSize = settings.TILE_SIZE * 0.8,  -- Размер коллайдера
-    colliderOffset = settings.TILE_SIZE * 0.1,  -- Смещение коллайдера
+    colliderSize = settings.TILE_SIZE * 0.8,
+    colliderOffset = settings.TILE_SIZE * 0.1,
     currentSpeed = 0,
     baseSpeed = settings.PLAYER_SPEED,
     fastMultiplier = 2,
-    otherPlayers = {}
+    otherPlayers = {},
+    currentItem = items.grapplingHook
 }
 
 function player.load()
+end
+
+local function resolveCollision(newX, newY)
+    if not tiles.checkCollision(newX + player.colliderOffset, newY + player.colliderOffset, player.colliderSize) then
+        return newX, newY
+    else
+        if not tiles.checkCollision(player.x + player.colliderOffset, newY + player.colliderOffset, player.colliderSize) then
+            return player.x, newY
+        elseif not tiles.checkCollision(newX + player.colliderOffset, player.y + player.colliderOffset, player.colliderSize) then
+            return newX, player.y
+        else
+            return player.x, player.y
+        end
+    end
 end
 
 function player.update(dt, chat)
@@ -37,17 +55,11 @@ function player.update(dt, chat)
         local speedMultiplier = love.keyboard.isDown(settings.MOVE_FAST_KEY) and player.fastMultiplier or 1
         local currentSpeed = player.baseSpeed * speedMultiplier
 
+        local oldX, oldY = player.x, player.y
         local newX = player.x + dx * currentSpeed * dt
         local newY = player.y + dy * currentSpeed * dt
 
-        local oldX, oldY = player.x, player.y
-
-        if not tiles.checkCollision(newX + player.colliderOffset, player.y + player.colliderOffset, player.colliderSize) then
-            player.x = newX
-        end
-        if not tiles.checkCollision(player.x + player.colliderOffset, newY + player.colliderOffset, player.colliderSize) then
-            player.y = newY
-        end
+        player.x, player.y = resolveCollision(newX, newY)
 
         player.currentSpeed = math.sqrt((player.x - oldX)^2 + (player.y - oldY)^2) / dt
 
@@ -57,6 +69,16 @@ function player.update(dt, chat)
         if network.id and network.players[network.id] then
             network.players[network.id].x = player.x
             network.players[network.id].y = player.y
+        end
+
+        if player.currentItem then
+            player.currentItem:update(dt, player)
+        end
+        
+        -- Обнуляем скорость, если игрок не на крюке
+        if not (player.currentItem and player.currentItem.state == "attached") then
+            player.velocityX = 0
+            player.velocityY = 0
         end
 
         player.otherPlayers = {}
@@ -93,6 +115,10 @@ function player.draw()
             love.graphics.setColor(1, 0, 0, 0.5)
             love.graphics.rectangle('line', p.x + player.colliderOffset, p.y + player.colliderOffset, player.colliderSize, player.colliderSize)
         end
+    end
+
+    if player.currentItem then
+        player.currentItem:draw(player)  -- Передаем player в качестве аргумента
     end
 end
 

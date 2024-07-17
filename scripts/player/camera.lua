@@ -43,4 +43,9 @@ function camera.resize(w, h)
     camera.height = h
 end
 
+function camera:mousePosition()
+    local mx, my = love.mouse.getPosition()
+    return self.x + mx, self.y + my
+end
+
 return camera

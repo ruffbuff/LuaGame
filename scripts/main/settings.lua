@@ -1,7 +1,7 @@
 -- scripts/main/settings.lua
 
 local settings = {
-    GAME_VERSION = "0.1.5",
+    GAME_VERSION = "0.1.6",
     GAME_NAME = "LuaGame",
     TILE_SIZE = 64,
     WORLD_WIDTH = 50,
@@ -18,6 +18,8 @@ local settings = {
     WINDOW_HEIGHT = 720,
     WINDOW_RESIZABLE = true,
     FULLSCREEN_TOGGLE_KEY = "f11",
+    GRAPPLING_HOOK_SHOOT_KEY = "e",
+    GRAPPLING_HOOK_DETACH_KEY = "q",
 
     playerColors = {
         {1, 0, 0},

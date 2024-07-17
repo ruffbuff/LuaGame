@@ -179,7 +179,7 @@ function settingsModal.mousepressed(x, y, button, network)
             {"Move Left", "MOVE_LEFT_KEY"},
             {"Move Right", "MOVE_RIGHT_KEY"},
             {"Move Fast", "MOVE_FAST_KEY"},
-            {"Pause", "PAUSE_TOGGLE_KEY"}
+            {"Pause", "PAUSE_TOGGLE_KEY"},
         }
 
         for i, hotkey in ipairs(hotkeySettings) do

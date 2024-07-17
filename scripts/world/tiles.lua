@@ -11,11 +11,12 @@ local testTile = {
 }
 
 function tiles.generateMap()
+    love.math.setRandomSeed(12345)
     local map = {}
     for y = 1, settings.WORLD_HEIGHT do
         map[y] = {}
         for x = 1, settings.WORLD_WIDTH do
-            if love.math.random() < 0.1 then  -- 10% Chance to generate a tile
+            if love.math.random() < 0.1 then  -- 10% chance
                 map[y][x] = testTile
             else
                 map[y][x] = nil

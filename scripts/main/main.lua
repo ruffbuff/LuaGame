@@ -11,6 +11,7 @@ local settingsModal = require("scripts.panels.settings")
 local network = require("scripts.network.network")
 local minimap = require("scripts.player.minimap")
 local chat = require("scripts.player.chat")
+local input = require("scripts.utils.input")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 
@@ -134,6 +135,8 @@ function love.keypressed(key)
             end
         elseif key == settings.FULLSCREEN_TOGGLE_KEY then
             love.window.setFullscreen(not love.window.getFullscreen())
+        elseif gameState == "game" then
+            input.keypressed(key)  -- Изменено с player.keypressed на input.keypressed
         end
     end
 end
