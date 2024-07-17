@@ -53,6 +53,11 @@ end
 function pause.resume()
 end
 
+function pause.openSettings()
+    settingsModal.active = true
+    settingsModal.selectedTab = 1
+end
+
 function pause.quitToMenu()
 end
 

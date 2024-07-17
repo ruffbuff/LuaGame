@@ -1,16 +1,69 @@
 -- scripts/panels/settings.lua
 
 local settings = require("scripts.main.settings")
+local json = require("scripts.utils.json")
 
 local settingsModal = {}
+local pressedKeys = {}
+
+local function keyPressed(key)
+    pressedKeys[key] = true
+end
+
+local function keyReleased(key)
+    pressedKeys[key] = nil
+end
+
+local function getFirstPressedKey()
+    for key, _ in pairs(pressedKeys) do
+        return key
+    end
+    return nil
+end
 
 function settingsModal.load()
     settingsModal.active = false
     settingsModal.selectedTab = 1
     settingsModal.tabs = {"Server", "Player", "Graphics"}
+    settingsModal.selectedHotkey = nil
+    settingsModal.waitingForInput = false
+    settingsModal.loadSettings()
+end
+
+function settingsModal.loadSettings()
+    local success, contents = pcall(love.filesystem.read, "settings.json")
+    if success and contents then
+        local loadedSettings = json.decode(contents)
+        for key, value in pairs(loadedSettings) do
+            settings[key] = value
+        end
+    end
+end
+
+function settingsModal.saveSettings()
+    local settingsToSave = {
+        MOVE_UP_KEY = settings.MOVE_UP_KEY,
+        MOVE_DOWN_KEY = settings.MOVE_DOWN_KEY,
+        MOVE_LEFT_KEY = settings.MOVE_LEFT_KEY,
+        MOVE_RIGHT_KEY = settings.MOVE_RIGHT_KEY,
+        MOVE_FAST_KEY = settings.MOVE_FAST_KEY,
+        PAUSE_TOGGLE_KEY = settings.PAUSE_TOGGLE_KEY,
+        playerColor = settings.playerColor
+    }
+    love.filesystem.write("settings.json", json.encode(settingsToSave))
 end
 
 function settingsModal.update(dt)
+    if settingsModal.waitingForInput then
+        local key = getFirstPressedKey()
+        if key then
+            settings[settingsModal.selectedHotkey] = key
+            settingsModal.waitingForInput = false
+            settingsModal.selectedHotkey = nil
+            settingsModal.saveSettings()
+            pressedKeys = {} -- Очистить список нажатых клавиш
+        end
+    end
 end
 
 function settingsModal.draw()
@@ -45,10 +98,9 @@ function settingsModal.draw()
 
     local contentX = modalX + 20
     local contentY = modalY + 120
-    if settingsModal.selectedTab == 1 then
-        love.graphics.printf("Server settings", contentX, contentY, modalWidth - 40, "left")
-    elseif settingsModal.selectedTab == 2 then
+    if settingsModal.selectedTab == 2 then
         love.graphics.printf("Player settings", contentX, contentY, modalWidth - 40, "left")
+
         love.graphics.setColor(1, 1, 1)
         love.graphics.print("Player Color:", contentX, contentY + 40)
         for i, color in ipairs(settings.playerColors) do
@@ -56,13 +108,33 @@ function settingsModal.draw()
             local rectY = contentY + 30
             love.graphics.setColor(color[1], color[2], color[3])
             love.graphics.rectangle("fill", rectX, rectY, 40, 40)
-            if settings.playerColor == color then
+            if settings.playerColor[1] == color[1] and settings.playerColor[2] == color[2] and settings.playerColor[3] == color[3] then
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.rectangle("line", rectX, rectY, 40, 40)
             end
         end
-    elseif settingsModal.selectedTab == 3 then
-        love.graphics.printf("Graphics settings", contentX, contentY, modalWidth - 40, "left")
+
+        local hotkeyY = contentY + 100
+        local hotkeySettings = {
+            {"Move Up", "MOVE_UP_KEY"},
+            {"Move Down", "MOVE_DOWN_KEY"},
+            {"Move Left", "MOVE_LEFT_KEY"},
+            {"Move Right", "MOVE_RIGHT_KEY"},
+            {"Move Fast", "MOVE_FAST_KEY"},
+            {"Pause", "PAUSE_TOGGLE_KEY"}
+        }
+
+        for i, hotkey in ipairs(hotkeySettings) do
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.print(hotkey[1] .. ":", contentX, hotkeyY + (i-1) * 30)
+            love.graphics.rectangle("line", contentX + 150, hotkeyY + (i-1) * 30, 100, 25)
+            
+            if settingsModal.waitingForInput and settingsModal.selectedHotkey == hotkey[2] then
+                love.graphics.print("Press a key...", contentX + 155, hotkeyY + (i-1) * 30 + 5)
+            else
+                love.graphics.print(settings[hotkey[2]], contentX + 155, hotkeyY + (i-1) * 30 + 5)
+            end
+        end
     end
 end
 
@@ -87,6 +159,7 @@ function settingsModal.mousepressed(x, y, button, network)
     if settingsModal.selectedTab == 2 then
         local contentX = modalX + 20
         local contentY = modalY + 120
+
         for i, color in ipairs(settings.playerColors) do
             local rectX = contentX + 120 + (i - 1) * 50
             local rectY = contentY + 30
@@ -94,10 +167,44 @@ function settingsModal.mousepressed(x, y, button, network)
                 settings.playerColor = color
                 network.setPlayerColor(color)
                 network.sendPlayerColor(color)
+                settingsModal.saveSettings()
+                break
+            end
+        end
+
+        local hotkeyY = contentY + 100
+        local hotkeySettings = {
+            {"Move Up", "MOVE_UP_KEY"},
+            {"Move Down", "MOVE_DOWN_KEY"},
+            {"Move Left", "MOVE_LEFT_KEY"},
+            {"Move Right", "MOVE_RIGHT_KEY"},
+            {"Move Fast", "MOVE_FAST_KEY"},
+            {"Pause", "PAUSE_TOGGLE_KEY"}
+        }
+
+        for i, hotkey in ipairs(hotkeySettings) do
+            if x >= contentX + 150 and x <= contentX + 250 and
+               y >= hotkeyY + (i-1) * 30 and y <= hotkeyY + (i-1) * 30 + 25 then
+                settingsModal.selectedHotkey = hotkey[2]
+                settingsModal.waitingForInput = true
                 break
             end
         end
     end
+end
+
+function settingsModal.keypressed(key)
+    keyPressed(key)
+end
+
+function settingsModal.keyreleased(key)
+    keyReleased(key)
+end
+
+function settingsModal.close()
+    settingsModal.active = false
+    settingsModal.selectedHotkey = nil
+    settingsModal.waitingForInput = false
 end
 
 return settingsModal

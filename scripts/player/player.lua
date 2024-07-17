@@ -20,10 +20,10 @@ function player.update(dt, chat)
     if not chat.isActive then
         local dx, dy = 0, 0
 
-        if love.keyboard.isDown(unpack(settings.MOVE_LEFT_KEY)) then dx = dx - 1 end
-        if love.keyboard.isDown(unpack(settings.MOVE_RIGHT_KEY)) then dx = dx + 1 end
-        if love.keyboard.isDown(unpack(settings.MOVE_UP_KEY)) then dy = dy - 1 end
-        if love.keyboard.isDown(unpack(settings.MOVE_DOWN_KEY)) then dy = dy + 1 end
+        if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1 end
+        if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1 end
+        if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1 end
+        if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1 end
 
         if dx ~= 0 and dy ~= 0 then
             dx = dx / math.sqrt(2)

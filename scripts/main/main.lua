@@ -116,20 +116,30 @@ function love.textinput(t)
 end
 
 function love.keypressed(key)
-    if not chat.keypressed(key) then
+    if settingsModal.active then
+        if key == settings.PAUSE_TOGGLE_KEY then
+            settingsModal.active = false
+        else
+            settingsModal.keypressed(key)
+        end
+    elseif not chat.keypressed(key) then
         if key == settings.DEBUG_TOGGLE_KEY then
             debug.toggle()
-        elseif key == settings.PAUSE_TOGGLE_KEY and gameState == "game" then
-            gameState = "pause"
-        elseif key == settings.PAUSE_TOGGLE_KEY and gameState == "pause" then
-            if settingsModal.active then
-                settingsModal.active = false
-            else
+        elseif key == settings.PAUSE_TOGGLE_KEY then
+            if gameState == "game" then
+                gameState = "pause"
+            elseif gameState == "pause" then
                 gameState = "game"
             end
         elseif key == settings.FULLSCREEN_TOGGLE_KEY then
             love.window.setFullscreen(not love.window.getFullscreen())
         end
+    end
+end
+
+function love.keyreleased(key)
+    if settingsModal.active then
+        settingsModal.keyreleased(key)
     end
 end
 
