@@ -2,11 +2,15 @@
 
 local settings = require("scripts.main.settings")
 local network = require("scripts.network.network")
+local tiles = require("scripts.world.tiles")
+local debug = require("scripts.main.debug")
 
 local player = {
     x = 1568,
     y = 1568,
     size = settings.TILE_SIZE,
+    colliderSize = settings.TILE_SIZE * 0.8,  -- Размер коллайдера
+    colliderOffset = settings.TILE_SIZE * 0.1,  -- Смещение коллайдера
     currentSpeed = 0,
     baseSpeed = settings.PLAYER_SPEED,
     fastMultiplier = 2,
@@ -36,10 +40,16 @@ function player.update(dt, chat)
         local newX = player.x + dx * currentSpeed * dt
         local newY = player.y + dy * currentSpeed * dt
 
-        player.currentSpeed = math.sqrt((newX - player.x)^2 + (newY - player.y)^2) / dt
+        local oldX, oldY = player.x, player.y
 
-        player.x = newX
-        player.y = newY
+        if not tiles.checkCollision(newX + player.colliderOffset, player.y + player.colliderOffset, player.colliderSize) then
+            player.x = newX
+        end
+        if not tiles.checkCollision(player.x + player.colliderOffset, newY + player.colliderOffset, player.colliderSize) then
+            player.y = newY
+        end
+
+        player.currentSpeed = math.sqrt((player.x - oldX)^2 + (player.y - oldY)^2) / dt
 
         player.x = math.max(0, math.min(player.x, settings.WORLD_WIDTH * settings.TILE_SIZE - player.size))
         player.y = math.max(0, math.min(player.y, settings.WORLD_HEIGHT * settings.TILE_SIZE - player.size))
@@ -78,6 +88,11 @@ function player.draw()
             love.graphics.setColor(color[1], color[2], color[3])
         end
         love.graphics.rectangle('fill', p.x, p.y, player.size, player.size)
+
+        if debug.isEnabled() then
+            love.graphics.setColor(1, 0, 0, 0.5)
+            love.graphics.rectangle('line', p.x + player.colliderOffset, p.y + player.colliderOffset, player.colliderSize, player.colliderSize)
+        end
     end
 end
 

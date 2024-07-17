@@ -1,34 +1,23 @@
 -- scripts/world/world.lua
 
 local settings = require("scripts.main.settings")
+local tiles = require("scripts.world.tiles")
+local debug = require("scripts.main.debug")
 
 local world = {
-    tiles = {}
+    map = {}
 }
 
 function world.load()
-    for y = 1, settings.WORLD_HEIGHT do
-        world.tiles[y] = {}
-        for x = 1, settings.WORLD_WIDTH do
-            world.tiles[y][x] = 1
-        end
-    end
+    world.map = tiles.generateMap()
+    tiles.map = world.map
 end
 
 function world.update(dt)
 end
 
 function world.draw()
-    for y = 1, settings.WORLD_HEIGHT do
-        for x = 1, settings.WORLD_WIDTH do
-            love.graphics.setColor(0.5, 0.5, 0.5)
-            love.graphics.rectangle('line', 
-                (x-1) * settings.TILE_SIZE, 
-                (y-1) * settings.TILE_SIZE, 
-                settings.TILE_SIZE, 
-                settings.TILE_SIZE)
-        end
-    end
+    tiles.draw(world.map, debug.isEnabled())
 end
 
 return world

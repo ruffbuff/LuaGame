@@ -3,6 +3,7 @@
 local settings = require("scripts.main.settings")
 local player = require("scripts.player.player")
 local network = require("scripts.network.network")
+local world = require("scripts.world.world")
 
 local minimap = {}
 
@@ -33,6 +34,20 @@ function minimap.draw()
 
     love.graphics.setColor(settings.playerColor[1], settings.playerColor[2], settings.playerColor[3])
     love.graphics.circle("fill", mapX + playerX, mapY + playerY, 4)
+
+    for y = 1, settings.WORLD_HEIGHT do
+        for x = 1, settings.WORLD_WIDTH do
+            local tile = world.map[y][x]
+            if tile then
+                love.graphics.setColor(tile.color[1], tile.color[2], tile.color[3], 0.5)
+                love.graphics.rectangle("fill", 
+                    mapX + (x-1) * mapScale * settings.TILE_SIZE, 
+                    mapY + (y-1) * mapScale * settings.TILE_SIZE, 
+                    mapScale * settings.TILE_SIZE, 
+                    mapScale * settings.TILE_SIZE)
+            end
+        end
+    end
 
     for id, otherPlayer in pairs(player.otherPlayers) do
         if otherPlayer.color then
