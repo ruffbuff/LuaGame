@@ -127,6 +127,8 @@ function player.update(dt, chat)
             player.velocityY = 0
         end
 
+        player.isOnEntrance = tiles.isOnEntrance(player.x + player.size / 2, player.y + player.size / 2, player.size)
+
         player.otherPlayers = {}
         for id, p in pairs(network.players) do
             if id ~= network.id then

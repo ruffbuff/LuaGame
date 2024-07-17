@@ -1,7 +1,7 @@
 -- scripts/main/settings.lua
 
 local settings = {
-    GAME_VERSION = "0.1.8",
+    GAME_VERSION = "0.1.9",
     GAME_NAME = "LuaGame",
     TILE_SIZE = 64,
     WORLD_WIDTH = 50,

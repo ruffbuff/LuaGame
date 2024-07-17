@@ -19,10 +19,12 @@ function debug.draw(player, network, gameState)
         love.graphics.setColor(1, 1, 1)
         love.graphics.setFont(love.graphics.newFont(16))
         love.graphics.print("Version: " .. settings.GAME_VERSION, 220, 10)
-        love.graphics.print("Player X: " .. math.floor(player.x), 220, 50)
-        love.graphics.print("Player Y: " .. math.floor(player.y), 220, 70)
-        love.graphics.print("Speed: " .. math.floor(player.currentSpeed), 220, 90)
         love.graphics.print("FPS: " .. love.timer.getFPS(), 220, 30)
+        love.graphics.print("Player Position : (X:" .. math.floor(player.x) .. ", Y:" .. math.floor(player.y) .. ")", 220, 50)
+        local playerBlockX = math.floor(player.x / settings.TILE_SIZE) + 1
+        local playerBlockY = math.floor(player.y / settings.TILE_SIZE) + 1
+        love.graphics.print("Player Block: (X:" .. playerBlockX .. ", Y:" .. playerBlockY .. ")", 220, 70)
+        love.graphics.print("Speed: " .. math.floor(player.currentSpeed), 220, 90)
 
         if network.ping then
             love.graphics.print("Ping: " .. math.floor(network.ping) .. " ms", 220, 110)

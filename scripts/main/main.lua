@@ -70,16 +70,16 @@ function love.update(dt)
     end
 
     if gameState == "game" then
-        world.update(dt)
+        world.update(dt, player)
         player.update(dt, chat)
         camera.update(dt)
     elseif gameState == "menu" then
         menu.update(dt)
     elseif gameState == "pause" then
-        pause.update(dt)
-        world.update(dt)
+        world.update(dt, player)
         player.update(dt, chat)
         camera.update(dt)
+        pause.update(dt)
     end
 
     if settingsModal.active then
@@ -95,6 +95,7 @@ function love.draw()
         world.draw()
         player.draw()
         camera.unset()
+        world.draw()
         minimap.draw()
         chat.draw()
         debug.draw(player, network, gameState)
@@ -105,6 +106,7 @@ function love.draw()
         world.draw()
         player.draw()
         camera.unset()
+        world.draw()
         pause.draw()
         if settingsModal.active then
             settingsModal.draw()
@@ -138,7 +140,7 @@ function love.keypressed(key)
         elseif key == settings.FULLSCREEN_TOGGLE_KEY then
             love.window.setFullscreen(not love.window.getFullscreen())
         elseif gameState == "game" then
-            input.keypressed(key)  -- Изменено с player.keypressed на input.keypressed
+            input.keypressed(key)
         end
     end
 end

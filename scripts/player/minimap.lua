@@ -25,7 +25,7 @@ function minimap.draw()
     local viewportX = math.max(mapX, math.min(mapX + mapWidth - viewportWidth, mapX + playerX - viewportWidth / 2))
     local viewportY = math.max(mapY, math.min(mapY + mapHeight - viewportHeight, mapY + playerY - viewportHeight / 2))
 
-    love.graphics.setColor(1, 1, 1, 0.2)
+    love.graphics.setColor(1, 0, 0, 0.1)
     love.graphics.rectangle("fill", viewportX, viewportY, viewportWidth, viewportHeight)
 
     local playerColorIndex = (network.id - 1) % #settings.playerColors + 1
