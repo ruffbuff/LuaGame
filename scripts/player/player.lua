@@ -163,12 +163,14 @@ function player.update(dt, chat)
 end
 
 function player.draw()
-    love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
-    for x = 0, settings.WORLD_WIDTH do
-        love.graphics.line(x * settings.TILE_SIZE, 0, x * settings.TILE_SIZE, settings.WORLD_HEIGHT * settings.TILE_SIZE)
-    end
-    for y = 0, settings.WORLD_HEIGHT do
-        love.graphics.line(0, y * settings.TILE_SIZE, settings.WORLD_WIDTH * settings.TILE_SIZE, y * settings.TILE_SIZE)
+    if debug.isEnabled() then
+        love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
+        for x = 0, settings.WORLD_WIDTH do
+            love.graphics.line(x * settings.TILE_SIZE, 0, x * settings.TILE_SIZE, settings.WORLD_HEIGHT * settings.TILE_SIZE)
+        end
+        for y = 0, settings.WORLD_HEIGHT do
+            love.graphics.line(0, y * settings.TILE_SIZE, settings.WORLD_WIDTH * settings.TILE_SIZE, y * settings.TILE_SIZE)
+        end
     end
 
     for id, p in pairs(network.players) do

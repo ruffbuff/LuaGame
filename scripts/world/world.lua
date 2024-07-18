@@ -19,7 +19,7 @@ function world.update(dt, player)
 end
 
 function world.draw()
-    tiles.draw(world.map, debug.isEnabled())
+    tiles.draw(world.map)
 
     if world.showEntranceModal then
         love.graphics.push()
