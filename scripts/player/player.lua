@@ -165,11 +165,14 @@ end
 
 function player.draw(camera)
     local screenWidth, screenHeight = love.graphics.getDimensions()
-    local baseRadius = 3 * settings.TILE_SIZE
+    local baseRadius = 5 * settings.TILE_SIZE
+
+    local scaleFactor = math.min(screenWidth, screenHeight) / math.min(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
+    local adjustedRadius = baseRadius * scaleFactor
 
     love.graphics.setBlendMode('add')
     love.graphics.setColor(0.8, 0.6, 0.2, 0.2)
-    local glowRadius = baseRadius * 1.5
+    local glowRadius = adjustedRadius * 1.2
     love.graphics.circle('fill', player.x + player.size / 2, player.y + player.size / 2, glowRadius)
     love.graphics.setBlendMode('alpha')
 

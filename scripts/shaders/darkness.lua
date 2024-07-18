@@ -11,10 +11,10 @@ local darknessShader = love.graphics.newShader[[
         vec2 aspectRatio = vec2(screenSize.x / screenSize.y, 1.0);
         vec2 relativePos = screen_coords / screenSize;
         vec2 playerRelativePos = playerPos / screenSize;
-        float dist = distance(relativePos, playerRelativePos) * screenSize.y;
-        float alpha = smoothstep(0.0, radius, dist);
+        float dist = distance(relativePos * aspectRatio, playerRelativePos * aspectRatio);
+        float alpha = smoothstep(0.0, radius / screenSize.y, dist);
 
-        float glow = smoothstep(radius, 0.0, dist) * 0.5;
+        float glow = smoothstep(radius / screenSize.y, 0.0, dist) * 0.5;
         vec3 finalColor = mix(glowColor, vec3(0.0), alpha);
 
         return vec4(finalColor, alpha * color.a);
