@@ -7,6 +7,7 @@ local debug = require("scripts.main.debug")
 local items = require("scripts.items.items")
 local spawnEffect = require("scripts.effects.spawnEffect")
 local eventManager = require("scripts.utils.eventManager")
+local darknessShader = require("scripts.shaders.darkness")
 
 local player = {
     x = 1568,
@@ -162,16 +163,15 @@ function player.update(dt, chat)
     end
 end
 
-function player.draw()
-    if debug.isEnabled() then
-        love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
-        for x = 0, settings.WORLD_WIDTH do
-            love.graphics.line(x * settings.TILE_SIZE, 0, x * settings.TILE_SIZE, settings.WORLD_HEIGHT * settings.TILE_SIZE)
-        end
-        for y = 0, settings.WORLD_HEIGHT do
-            love.graphics.line(0, y * settings.TILE_SIZE, settings.WORLD_WIDTH * settings.TILE_SIZE, y * settings.TILE_SIZE)
-        end
-    end
+function player.draw(camera)
+    local screenWidth, screenHeight = love.graphics.getDimensions()
+    local baseRadius = 3 * settings.TILE_SIZE
+
+    love.graphics.setBlendMode('add')
+    love.graphics.setColor(0.8, 0.6, 0.2, 0.2)
+    local glowRadius = baseRadius * 1.5
+    love.graphics.circle('fill', player.x + player.size / 2, player.y + player.size / 2, glowRadius)
+    love.graphics.setBlendMode('alpha')
 
     for id, p in pairs(network.players) do
         if id == network.id then
@@ -199,6 +199,32 @@ function player.draw()
 
     if player.currentItem then
         player.currentItem:draw(player)
+    end
+
+    love.graphics.setShader(darknessShader)
+
+    local playerScreenX = player.x + player.size / 2 - camera.x
+    local playerScreenY = player.y + player.size / 2 - camera.y
+
+    darknessShader:send("playerPos", {playerScreenX, playerScreenY})
+    darknessShader:send("radius", baseRadius)
+    darknessShader:send("screenSize", {screenWidth, screenHeight})
+    darknessShader:send("glowColor", {0.8, 0.6, 0.2})
+
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.rectangle('fill', camera.x, camera.y, camera.width, camera.height)
+
+    love.graphics.setShader()
+
+    -- WORLD GRID
+    if debug.isEnabled() then
+        love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
+        for x = 0, settings.WORLD_WIDTH do
+            love.graphics.line(x * settings.TILE_SIZE, 0, x * settings.TILE_SIZE, settings.WORLD_HEIGHT * settings.TILE_SIZE)
+        end
+        for y = 0, settings.WORLD_HEIGHT do
+            love.graphics.line(0, y * settings.TILE_SIZE, settings.WORLD_WIDTH * settings.TILE_SIZE, y * settings.TILE_SIZE)
+        end
     end
 end
 

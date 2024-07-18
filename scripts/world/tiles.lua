@@ -7,7 +7,7 @@ local tiles = {}
 
 local floorTile = {
     color = {0.9, 0.7, 0.3},
-    debugColor = {1, 0, 0}
+    debugColor = {0.5, 0.5, 0.5, 0.5},
 }
 
 local buildingTile = {
