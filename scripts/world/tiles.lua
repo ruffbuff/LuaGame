@@ -6,7 +6,7 @@ local debug = require("scripts.main.debug")
 local tiles = {}
 
 local floorTile = {
-    color = {0.8, 0.8, 0.8},
+    color = {0.9, 0.7, 0.3},
     debugColor = {1, 0, 0}
 }
 

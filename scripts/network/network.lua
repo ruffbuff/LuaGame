@@ -2,6 +2,7 @@
 
 local socket = require("socket")
 local settings = require("scripts.main.settings")
+local eventManager = require("scripts.utils.eventManager")
 
 local network = {
     udp = socket.udp(),
@@ -60,7 +61,13 @@ function network.update()
                 settings.playerColor = {tonumber(r), tonumber(g), tonumber(b)}
                 network.players[network.id] = {x = 1568, y = 1568}
                 print("Connected to server with ID: " .. network.id)
+                eventManager.triggerEvent("playerSpawned", network.id)
                 return "ID_RECEIVED"
+            elseif data:sub(1, 6) == "SPAWN:" then
+                local id = tonumber(data:sub(7))
+                if network.players[id] then
+                    eventManager.triggerEvent("otherPlayerSpawned", id)
+                end
             elseif data:sub(1, 6) == "COLOR:" then
                 local id, r, g, b = data:match("COLOR:(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
                 id, r, g, b = tonumber(id), tonumber(r), tonumber(g), tonumber(b)
@@ -101,6 +108,12 @@ function network.update()
     end
 
     return nil
+end
+
+function network.sendSpawnEffect()
+    if network.id then
+        network.udp:send("SPAWN:" .. network.id)
+    end
 end
 
 function network.sendPosition(x, y)

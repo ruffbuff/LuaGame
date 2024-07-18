@@ -48,6 +48,15 @@ function server.update()
             for _, message in ipairs(server.chatMessages) do
                 server.udp:sendto("CHAT:" .. message, msg_or_ip, port_or_nil)
             end
+
+            for _, client in pairs(server.clients) do
+                server.udp:sendto("SPAWN:" .. id, client.ip, client.port)
+            end
+        elseif data:sub(1, 6) == "SPAWN:" then
+            local spawnId = tonumber(data:sub(7))
+            for _, client in pairs(server.clients) do
+                server.udp:sendto(data, client.ip, client.port)
+            end
         elseif data:sub(1, 11) == "DISCONNECT:" then
             local id = tonumber(data:sub(12))
             if server.clients[id] then

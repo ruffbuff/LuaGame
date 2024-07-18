@@ -12,6 +12,7 @@ local network = require("scripts.network.network")
 local minimap = require("scripts.player.minimap")
 local chat = require("scripts.player.chat")
 local input = require("scripts.utils.input")
+local spawnEffect = require("scripts.effects.spawnEffect")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 
@@ -34,6 +35,8 @@ function love.load(dt)
     })
     love.window.setTitle(settings.GAME_NAME)
 
+    spawnEffect.load()
+    player.load()
     menu.load()
     pause.load()
     settingsModal.load()
@@ -72,6 +75,7 @@ function love.update(dt)
     if gameState == "game" then
         world.update(dt, player)
         player.update(dt, chat)
+        spawnEffect.update(dt)
         camera.update(dt)
     elseif gameState == "menu" then
         menu.update(dt)

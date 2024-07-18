@@ -5,6 +5,8 @@ local network = require("scripts.network.network")
 local tiles = require("scripts.world.tiles")
 local debug = require("scripts.main.debug")
 local items = require("scripts.items.items")
+local spawnEffect = require("scripts.effects.spawnEffect")
+local eventManager = require("scripts.utils.eventManager")
 
 local player = {
     x = 1568,
@@ -20,10 +22,25 @@ local player = {
     baseSpeed = settings.PLAYER_SPEED,
     fastMultiplier = 2,
     otherPlayers = {},
-    currentItem = items.grapplingHook
+    currentItem = items.grapplingHook,
+    spawnEffectPlaying = false
 }
 
 function player.load()
+    spawnEffect.load()
+    eventManager.addListener("playerSpawned", player.playSpawnEffect)
+    eventManager.addListener("otherPlayerSpawned", player.playOtherPlayerSpawnEffect)
+end
+
+function player.playSpawnEffect()
+    player.spawnEffectPlaying = true
+    spawnEffect.play()
+end
+
+function player.playOtherPlayerSpawnEffect(id)
+    if network.players[id] then
+        network.players[id].spawnEffectPlaying = true
+    end
 end
 
 local function resolveCollision(newX, newY)
@@ -78,6 +95,13 @@ function player.dash(dx, dy)
 end
 
 function player.update(dt, chat)
+    if player.spawnEffectPlaying then
+        spawnEffect.update(dt)
+        if not spawnEffect.isPlaying then
+            player.spawnEffectPlaying = false
+        end
+    end
+
     if not chat.isActive then
         local dx, dy = 0, 0
 
@@ -159,6 +183,12 @@ function player.draw()
         end
         love.graphics.rectangle('fill', p.x, p.y, player.size, player.size)
 
+        if id == network.id and player.spawnEffectPlaying then
+            spawnEffect.draw(p.x - player.size / 2, p.y - player.size / 2)
+        elseif p.spawnEffectPlaying then
+            spawnEffect.draw(p.x - player.size / 2, p.y - player.size / 2)
+        end
+
         if debug.isEnabled() then
             love.graphics.setColor(1, 0, 0, 0.5)
             love.graphics.rectangle('line', p.x + player.colliderOffset, p.y + player.colliderOffset, player.colliderSize, player.colliderSize)
@@ -166,7 +196,7 @@ function player.draw()
     end
 
     if player.currentItem then
-        player.currentItem:draw(player)  -- Передаем player в качестве аргумента
+        player.currentItem:draw(player)
     end
 end
 
