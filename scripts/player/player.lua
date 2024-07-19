@@ -33,22 +33,29 @@ local player = {
 }
 
 local function loadAnimations()
-    local directions = {"down", "up", "left", "right"}
-    for _, dir in ipairs(directions) do
-        player.animations[dir] = {
-            idle = love.graphics.newImage("assets/images/cat/" .. dir .. "/0.png"),
-            walk = {},
-            run = {}
-        }
-        for i = 0, 3 do
-            local frame = love.graphics.newImage("assets/images/cat/" .. dir .. "/" .. i .. ".png")
-            table.insert(player.animations[dir].walk, frame)
-            table.insert(player.animations[dir].run, frame)
+    player.animations = {}
+    for _, color in ipairs(settings.playerColors) do
+        player.animations[color] = {}
+        local directions = {"down", "up", "left", "right"}
+        for _, dir in ipairs(directions) do
+            player.animations[color][dir] = {
+                idle = love.graphics.newImage("assets/images/" .. color .. "-cat/" .. dir .. "/0.png"),
+                walk = {},
+                run = {}
+            }
+            player.animations[color][dir].idle:setFilter("nearest", "nearest")
+            for i = 0, 3 do
+                local frame = love.graphics.newImage("assets/images/" .. color .. "-cat/" .. dir .. "/" .. i .. ".png")
+                frame:setFilter("nearest", "nearest")
+                table.insert(player.animations[color][dir].walk, frame)
+                table.insert(player.animations[color][dir].run, frame)
+            end
         end
     end
 end
 
 function player.load()
+    love.graphics.setDefaultFilter("nearest", "nearest")
     loadAnimations()
     spawnEffect.load()
     eventManager.addListener("playerSpawned", player.playSpawnEffect)
@@ -203,24 +210,13 @@ function player.update(dt, chat)
 end
 
 function player.draw(camera)
-    -- local screenWidth, screenHeight = love.graphics.getDimensions()
-    -- local baseRadius = 5 * settings.TILE_SIZE
-
-    -- local scaleFactor = math.min(screenWidth, screenHeight) / math.min(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
-    -- local adjustedRadius = baseRadius * scaleFactor
-
-    -- love.graphics.setBlendMode('add')
-    -- love.graphics.setColor(0.8, 0.6, 0.2, 0.2)
-    -- local glowRadius = adjustedRadius * 1.2
-    -- love.graphics.circle('fill', player.x + player.size / 2, player.y + player.size / 2, glowRadius)
-    -- love.graphics.setBlendMode('alpha')
-
     for id, p in pairs(network.players) do
         love.graphics.setColor(1, 1, 1)
         local direction = p.direction or "down"
         local state = p.state or "idle"
         local currentFrame = p.currentFrame or 1
-        local animation = player.animations[direction]
+        local color = p.color or "red"
+        local animation = player.animations[color][direction]
         local image = (state == "idle") and animation.idle or animation[state][currentFrame]
 
         local drawScale = settings.PLAYER_SPRITE_SCALE
@@ -247,19 +243,26 @@ function player.draw(camera)
         player.currentItem:draw(player)
     end
 
-    -- love.graphics.setShader(darknessShader)
+    -- SHADERS:
+    -- local screenWidth, screenHeight = love.graphics.getDimensions()
+    -- local baseRadius = 5 * settings.TILE_SIZE
+    -- local scaleFactor = math.min(screenWidth, screenHeight) / math.min(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
+    -- local adjustedRadius = baseRadius * scaleFactor
+    -- love.graphics.setBlendMode('add')
+    -- love.graphics.setColor(0.8, 0.6, 0.2, 0.2)
+    -- local glowRadius = adjustedRadius * 1.2
+    -- love.graphics.circle('fill', player.x + player.size / 2, player.y + player.size / 2, glowRadius)
+    -- love.graphics.setBlendMode('alpha')
 
+    -- love.graphics.setShader(darknessShader)
     -- local playerScreenX = player.x + player.size / 2 - camera.x
     -- local playerScreenY = player.y + player.size / 2 - camera.y
-
     -- darknessShader:send("playerPos", {playerScreenX, playerScreenY})
     -- darknessShader:send("radius", baseRadius)
     -- darknessShader:send("screenSize", {screenWidth, screenHeight})
     -- darknessShader:send("glowColor", {0.8, 0.6, 0.2})
-
     -- love.graphics.setColor(0, 0, 0, 1)
     -- love.graphics.rectangle('fill', camera.x, camera.y, camera.width, camera.height)
-
     -- love.graphics.setShader()
 
     -- WORLD GRID

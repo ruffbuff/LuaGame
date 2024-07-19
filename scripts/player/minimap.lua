@@ -28,11 +28,19 @@ function minimap.draw()
     love.graphics.setColor(1, 0, 0, 0.1)
     love.graphics.rectangle("fill", viewportX, viewportY, viewportWidth, viewportHeight)
 
-    local playerColorIndex = (network.id - 1) % #settings.playerColors + 1
-    local playerColor = settings.playerColors[playerColorIndex]
+    -- Установка цвета игрока
+    local playerColor = {1, 0, 0}  -- По умолчанию красный
+    if settings.playerColor == "blue" then
+        playerColor = {0, 0, 1}
+    elseif settings.playerColor == "green" then
+        playerColor = {0, 1, 0}
+    elseif settings.playerColor == "yellow" then
+        playerColor = {1, 1, 0}
+    elseif settings.playerColor == "purple" then
+        playerColor = {1, 0, 1}
+    end
 
-
-    love.graphics.setColor(settings.playerColor[1], settings.playerColor[2], settings.playerColor[3])
+    love.graphics.setColor(playerColor[1], playerColor[2], playerColor[3])
     love.graphics.circle("fill", mapX + playerX, mapY + playerY, 4)
 
     for y = 1, settings.WORLD_HEIGHT do
@@ -50,13 +58,17 @@ function minimap.draw()
     end
 
     for id, otherPlayer in pairs(player.otherPlayers) do
-        if otherPlayer.color then
-            love.graphics.setColor(otherPlayer.color[1], otherPlayer.color[2], otherPlayer.color[3])
-        else
-            local colorIndex = (id - 1) % #settings.playerColors + 1
-            local color = settings.playerColors[colorIndex]
-            love.graphics.setColor(color[1], color[2], color[3])
+        local otherPlayerColor = {1, 0, 0}  -- По умолчанию красный
+        if otherPlayer.color == "blue" then
+            otherPlayerColor = {0, 0, 1}
+        elseif otherPlayer.color == "green" then
+            otherPlayerColor = {0, 1, 0}
+        elseif otherPlayer.color == "yellow" then
+            otherPlayerColor = {1, 1, 0}
+        elseif otherPlayer.color == "purple" then
+            otherPlayerColor = {1, 0, 1}
         end
+        love.graphics.setColor(otherPlayerColor[1], otherPlayerColor[2], otherPlayerColor[3])
         love.graphics.circle("fill", mapX + (otherPlayer.x * mapScale), mapY + (otherPlayer.y * mapScale), 3)
     end
 end

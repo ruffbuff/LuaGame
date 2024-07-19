@@ -35,7 +35,7 @@ end
 
 function network.sendPlayerColor(color)
     if network.id then
-        local message = string.format("COLOR:%d,%f,%f,%f", network.id, color[1], color[2], color[3])
+        local message = string.format("COLOR:%d,%s", network.id, color)
         network.udp:send(message)
         print("Sent color change message:", message)
     end
@@ -56,11 +56,11 @@ function network.update()
                 local pingTime = tonumber(data:sub(6))
                 network.ping = (currentTime - pingTime) * 1000
             elseif data:sub(1,3) == "ID:" then
-                local id, r, g, b = data:match("ID:(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
+                local id, color = data:match("ID:(%d+),(%w+)")
                 network.id = tonumber(id)
-                settings.playerColor = {tonumber(r), tonumber(g), tonumber(b)}
-                network.players[network.id] = {x = 1568, y = 1568}
-                print("Connected to server with ID: " .. network.id)
+                settings.playerColor = color
+                network.players[network.id] = {x = 1568, y = 1568, color = color}
+                print("Connected to server with ID: " .. network.id .. " and color: " .. color)
                 eventManager.triggerEvent("playerSpawned", network.id)
                 return "ID_RECEIVED"
             elseif data:sub(1, 6) == "SPAWN:" then
@@ -69,12 +69,12 @@ function network.update()
                     eventManager.triggerEvent("otherPlayerSpawned", id)
                 end
             elseif data:sub(1, 6) == "COLOR:" then
-                local id, r, g, b = data:match("COLOR:(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
-                id, r, g, b = tonumber(id), tonumber(r), tonumber(g), tonumber(b)
+                local id, color = data:match("COLOR:(%d+),(%w+)")
+                id = tonumber(id)
                 if network.players[id] then
-                    network.players[id].color = {r, g, b}
+                    network.players[id].color = color
                     if id == network.id then
-                        settings.playerColor = {r, g, b}
+                        settings.playerColor = color
                     end
                 end
             elseif data == "START" then
@@ -87,11 +87,10 @@ function network.update()
             else
                 local newPlayers = {}
                 for playerData in data:gmatch("[^;]+") do
-                    local id, x, y, direction, state, currentFrame, r, g, b = playerData:match("(%d+),(%d+),(%d+),(%w+),(%w+),(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
-                    if id and x and y and direction and state and currentFrame and r and g and b then
+                    local id, x, y, direction, state, currentFrame, color = playerData:match("(%d+),(%d+),(%d+),(%w+),(%w+),(%d+),(%w+)")
+                    if id and x and y and direction and state and currentFrame and color then
                         id, x, y, currentFrame = tonumber(id), tonumber(x), tonumber(y), tonumber(currentFrame)
-                        r, g, b = tonumber(r), tonumber(g), tonumber(b)
-                        newPlayers[id] = {x = x, y = y, direction = direction, state = state, currentFrame = currentFrame, color = {r, g, b}}
+                        newPlayers[id] = {x = x, y = y, direction = direction, state = state, currentFrame = currentFrame, color = color}
                     else
                         print("Invalid player data received: " .. playerData)
                     end

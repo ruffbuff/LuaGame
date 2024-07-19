@@ -23,13 +23,7 @@ local settings = {
     GRAPPLING_HOOK_SHOOT_KEY = "e",
     GRAPPLING_HOOK_DETACH_KEY = "q",
 
-    playerColors = {
-        {1, 0, 0},
-        {0, 0, 1},
-        {0, 1, 0},
-        {1, 1, 0},
-        {1, 0, 1},
-    },
+    playerColors = {"red", "blue", "green", "yellow", "purple"},
 
     world = {
         width = 50,
@@ -37,7 +31,7 @@ local settings = {
         tileSize = 64,
     },
 
-    playerColor = {1, 0, 0},
+    playerColor = "red",
 }
 
 return settings

@@ -1,13 +1,7 @@
 local socket = require('socket')
 
 local settings = {
-    playerColors = {
-        {1, 0, 0},
-        {0, 0, 1},
-        {0, 1, 0},
-        {1, 1, 0},
-        {1, 0, 1},
-    }
+    playerColors = {"red", "blue", "green", "yellow", "purple"}
 }
 
 local server = {
@@ -35,13 +29,13 @@ function server.update()
             local colorIndex = (id - 1) % #settings.playerColors + 1
             local color = settings.playerColors[colorIndex]
             server.clients[id] = {ip = msg_or_ip, port = port_or_nil, x = 1568, y = 1568, lastUpdate = currentTime, color = color}
-            server.udp:sendto("ID:" .. id .. "," .. color[1] .. "," .. color[2] .. "," .. color[3], msg_or_ip, port_or_nil)
+            server.udp:sendto("ID:" .. id .. "," .. color, msg_or_ip, port_or_nil)
             server.udp:sendto("START", msg_or_ip, port_or_nil)
             print("New client connected with ID: " .. id)
 
             for clientId, client in pairs(server.clients) do
                 if clientId ~= id then
-                    server.udp:sendto("COLOR:" .. clientId .. "," .. client.color[1] .. "," .. client.color[2] .. "," .. client.color[3], msg_or_ip, port_or_nil)
+                    server.udp:sendto("COLOR:" .. clientId .. "," .. client.color, msg_or_ip, port_or_nil)
                 end
             end
 
@@ -70,13 +64,13 @@ function server.update()
                 server.udp:sendto("CHAT:" .. message, client.ip, client.port)
             end
         elseif data:sub(1, 6) == "COLOR:" then
-            local id, r, g, b = data:match("COLOR:(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
-            id, r, g, b = tonumber(id), tonumber(r), tonumber(g), tonumber(b)
+            local id, color = data:match("COLOR:(%d+),(%w+)")
+            id = tonumber(id)
             if server.clients[id] then
-                server.clients[id].color = {r, g, b}
-                print("Client " .. id .. " changed color to {" .. r .. ", " .. g .. ", " .. b .. "}")
+                server.clients[id].color = color
+                print("Client " .. id .. " changed color to " .. color)
                 for clientId, client in pairs(server.clients) do
-                    server.udp:sendto("COLOR:" .. id .. "," .. r .. "," .. g .. "," .. b, client.ip, client.port)
+                    server.udp:sendto("COLOR:" .. id .. "," .. color, client.ip, client.port)
                 end
             else
                 print("Received color change for unknown client ID:", id)
@@ -107,10 +101,15 @@ function server.update()
             if allData ~= "" then
                 allData = allData .. ";"
             end
-            allData = allData .. string.format("%d,%d,%d,%s,%s,%d,%f,%f,%f",
-                id, math.floor(client.x), math.floor(client.y),
-                client.direction or "down", client.state or "idle", client.currentFrame or 1,
-                client.color[1], client.color[2], client.color[3])
+            allData = allData .. string.format("%d,%d,%d,%s,%s,%d,%s",
+                id, 
+                math.floor(client.x), 
+                math.floor(client.y),
+                client.direction or "down", 
+                client.state or "idle", 
+                client.currentFrame or 1,
+                client.color or "red"
+            )
         end
         for _, client in pairs(server.clients) do
             server.udp:sendto(allData, client.ip, client.port)

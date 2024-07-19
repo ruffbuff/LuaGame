@@ -111,12 +111,29 @@ function settingsModal.draw()
         for i, color in ipairs(settings.playerColors) do
             local rectX = contentX + 200 + (i - 1) * 50
             local rectY = contentY + 30
-            love.graphics.setColor(color[1], color[2], color[3])
+            
+            -- Установка цвета квадратика
+            if color == "red" then
+                love.graphics.setColor(1, 0, 0)
+            elseif color == "green" then
+                love.graphics.setColor(0, 1, 0)
+            elseif color == "blue" then
+                love.graphics.setColor(0, 0, 1)
+            elseif color == "yellow" then
+                love.graphics.setColor(1, 1, 0)
+            elseif color == "purple" then
+                love.graphics.setColor(1, 0, 1)
+            end
+            
             love.graphics.rectangle("fill", rectX, rectY, 40, 40)
-            if settings.playerColor[1] == color[1] and settings.playerColor[2] == color[2] and settings.playerColor[3] == color[3] then
+            
+            if settings.playerColor == color then
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.rectangle("line", rectX, rectY, 40, 40)
             end
+            
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.print(color, rectX, rectY + 45)
         end
 
         local hotkeyY = contentY + 100
