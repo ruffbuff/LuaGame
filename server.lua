@@ -82,10 +82,13 @@ function server.update()
                 print("Received color change for unknown client ID:", id)
             end
         else
-            local id, x, y = data:match("(%d+),(%d+),(%d+)")
-            id, x, y = tonumber(id), tonumber(x), tonumber(y)
+            local id, x, y, direction, state, currentFrame = data:match("(%d+),(%d+),(%d+),(%w+),(%w+),(%d+)")
+            id, x, y, currentFrame = tonumber(id), tonumber(x), tonumber(y), tonumber(currentFrame)
             if server.clients[id] then
                 server.clients[id].x, server.clients[id].y = x, y
+                server.clients[id].direction = direction
+                server.clients[id].state = state
+                server.clients[id].currentFrame = currentFrame
                 server.clients[id].lastUpdate = currentTime
             end
         end
@@ -104,9 +107,12 @@ function server.update()
             if allData ~= "" then
                 allData = allData .. ";"
             end
-            allData = allData .. id .. "," .. math.floor(client.x) .. "," .. math.floor(client.y) .. "," .. client.color[1] .. "," .. client.color[2] .. "," .. client.color[3]
+            allData = allData .. string.format("%d,%d,%d,%s,%s,%d,%f,%f,%f",
+                id, math.floor(client.x), math.floor(client.y),
+                client.direction or "down", client.state or "idle", client.currentFrame or 1,
+                client.color[1], client.color[2], client.color[3])
         end
-        for id, client in pairs(server.clients) do
+        for _, client in pairs(server.clients) do
             server.udp:sendto(allData, client.ip, client.port)
         end
         server.lastUpdate = currentTime

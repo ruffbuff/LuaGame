@@ -87,10 +87,11 @@ function network.update()
             else
                 local newPlayers = {}
                 for playerData in data:gmatch("[^;]+") do
-                    local id, x, y, r, g, b = playerData:match("(%d+),(%d+),(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
-                    if id and x and y and r and g and b then
-                        id, x, y, r, g, b = tonumber(id), tonumber(x), tonumber(y), tonumber(r), tonumber(g), tonumber(b)
-                        newPlayers[id] = {x = x, y = y, color = {r, g, b}}
+                    local id, x, y, direction, state, currentFrame, r, g, b = playerData:match("(%d+),(%d+),(%d+),(%w+),(%w+),(%d+),([%d%.]+),([%d%.]+),([%d%.]+)")
+                    if id and x and y and direction and state and currentFrame and r and g and b then
+                        id, x, y, currentFrame = tonumber(id), tonumber(x), tonumber(y), tonumber(currentFrame)
+                        r, g, b = tonumber(r), tonumber(g), tonumber(b)
+                        newPlayers[id] = {x = x, y = y, direction = direction, state = state, currentFrame = currentFrame, color = {r, g, b}}
                     else
                         print("Invalid player data received: " .. playerData)
                     end
@@ -101,25 +102,57 @@ function network.update()
 
         if network.id and network.players[network.id] then
             if currentTime - network.lastUpdate >= 1/20 then
-                network.sendPosition(network.players[network.id].x, network.players[network.id].y)
+                local player = network.players[network.id]
+                network.sendPosition(
+                    player.x, 
+                    player.y, 
+                    player.direction, 
+                    player.state, 
+                    player.currentFrame
+                )
                 network.lastUpdate = currentTime
             end
+        end
+    end
+
+    -- Обновление анимации для всех игроков
+    for id, p in pairs(network.players) do
+        if p.state ~= "idle" then
+            p.animationTimer = (p.animationTimer or 0) + love.timer.getDelta()
+            local animationSpeed = (p.state == "run") and 0.1 or 0.2
+            if p.animationTimer >= animationSpeed then
+                p.animationTimer = p.animationTimer - animationSpeed
+                p.currentFrame = (p.currentFrame or 1) % 4 + 1
+            end
+        else
+            p.currentFrame = 1
         end
     end
 
     return nil
 end
 
-function network.sendSpawnEffect()
+function network.sendPosition(x, y, direction, state, currentFrame)
     if network.id then
-        network.udp:send("SPAWN:" .. network.id)
+        direction = direction or "down" 
+        state = state or "idle"         
+        currentFrame = currentFrame or 1
+        
+        local message = string.format("%d,%d,%d,%s,%s,%d", 
+            network.id, 
+            math.floor(x), 
+            math.floor(y), 
+            direction, 
+            state, 
+            currentFrame
+        )
+        network.udp:send(message)
     end
 end
 
-function network.sendPosition(x, y)
+function network.sendSpawnEffect()
     if network.id then
-        local message = string.format("%d,%d,%d", network.id, math.floor(x), math.floor(y))
-        network.udp:send(message)
+        network.udp:send("SPAWN:" .. network.id)
     end
 end
 

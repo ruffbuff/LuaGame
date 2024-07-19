@@ -1,12 +1,13 @@
 -- scripts/main/settings.lua
 
 local settings = {
-    GAME_VERSION = "0.1.12",
+    GAME_VERSION = "0.1.13",
     GAME_NAME = "LuaGame",
     TILE_SIZE = 64,
     WORLD_WIDTH = 50,
     WORLD_HEIGHT = 50,
-    PLAYER_SPEED = 400,
+    PLAYER_SPEED = 300,
+    PLAYER_SPRITE_SCALE = 2,
     DEBUG_TOGGLE_KEY = "f3",
     MOVE_UP_KEY = "w",
     MOVE_DOWN_KEY = "s",

@@ -24,10 +24,32 @@ local player = {
     fastMultiplier = 2,
     otherPlayers = {},
     currentItem = items.grapplingHook,
-    spawnEffectPlaying = false
+    spawnEffectPlaying = false,
+    direction = "down",
+    state = "idle",
+    animationTimer = 0,
+    currentFrame = 1,
+    animations = {}
 }
 
+local function loadAnimations()
+    local directions = {"down", "up", "left", "right"}
+    for _, dir in ipairs(directions) do
+        player.animations[dir] = {
+            idle = love.graphics.newImage("assets/images/cat/" .. dir .. "/0.png"),
+            walk = {},
+            run = {}
+        }
+        for i = 0, 3 do
+            local frame = love.graphics.newImage("assets/images/cat/" .. dir .. "/" .. i .. ".png")
+            table.insert(player.animations[dir].walk, frame)
+            table.insert(player.animations[dir].run, frame)
+        end
+    end
+end
+
 function player.load()
+    loadAnimations()
     spawnEffect.load()
     eventManager.addListener("playerSpawned", player.playSpawnEffect)
     eventManager.addListener("otherPlayerSpawned", player.playOtherPlayerSpawnEffect)
@@ -105,15 +127,29 @@ function player.update(dt, chat)
 
     if not chat.isActive then
         local dx, dy = 0, 0
+        local oldDirection = player.direction
 
-        if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1 end
-        if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1 end
-        if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1 end
-        if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1 end
+        if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1; player.direction = "left" end
+        if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1; player.direction = "right" end
+        if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1; player.direction = "up" end
+        if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1; player.direction = "down" end
 
         if dx ~= 0 and dy ~= 0 then
             dx = dx / math.sqrt(2)
             dy = dy / math.sqrt(2)
+        end
+
+        if dx == 0 and dy == 0 then
+            player.state = "idle"
+        else
+            player.state = love.keyboard.isDown(settings.MOVE_FAST_KEY) and "run" or "walk"
+        end
+
+        local animationSpeed = (player.state == "run") and 0.1 or 0.2
+        player.animationTimer = player.animationTimer + dt
+        if player.animationTimer >= animationSpeed then
+            player.animationTimer = player.animationTimer - animationSpeed
+            player.currentFrame = player.currentFrame % 4 + 1
         end
 
         player.dashCooldown = math.max(0, player.dashCooldown - dt)
@@ -141,6 +177,9 @@ function player.update(dt, chat)
         if network.id and network.players[network.id] then
             network.players[network.id].x = player.x
             network.players[network.id].y = player.y
+            network.players[network.id].direction = player.direction
+            network.players[network.id].state = player.state
+            network.players[network.id].currentFrame = player.currentFrame
         end
 
         if player.currentItem then
@@ -164,39 +203,43 @@ function player.update(dt, chat)
 end
 
 function player.draw(camera)
-    local screenWidth, screenHeight = love.graphics.getDimensions()
-    local baseRadius = 5 * settings.TILE_SIZE
+    -- local screenWidth, screenHeight = love.graphics.getDimensions()
+    -- local baseRadius = 5 * settings.TILE_SIZE
 
-    local scaleFactor = math.min(screenWidth, screenHeight) / math.min(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
-    local adjustedRadius = baseRadius * scaleFactor
+    -- local scaleFactor = math.min(screenWidth, screenHeight) / math.min(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
+    -- local adjustedRadius = baseRadius * scaleFactor
 
-    love.graphics.setBlendMode('add')
-    love.graphics.setColor(0.8, 0.6, 0.2, 0.2)
-    local glowRadius = adjustedRadius * 1.2
-    love.graphics.circle('fill', player.x + player.size / 2, player.y + player.size / 2, glowRadius)
-    love.graphics.setBlendMode('alpha')
+    -- love.graphics.setBlendMode('add')
+    -- love.graphics.setColor(0.8, 0.6, 0.2, 0.2)
+    -- local glowRadius = adjustedRadius * 1.2
+    -- love.graphics.circle('fill', player.x + player.size / 2, player.y + player.size / 2, glowRadius)
+    -- love.graphics.setBlendMode('alpha')
 
     for id, p in pairs(network.players) do
-        if id == network.id then
-            love.graphics.setColor(settings.playerColor[1], settings.playerColor[2], settings.playerColor[3])
-        elseif p.color then
-            love.graphics.setColor(p.color[1], p.color[2], p.color[3])
-        else
-            local colorIndex = (id - 1) % #settings.playerColors + 1
-            local color = settings.playerColors[colorIndex]
-            love.graphics.setColor(color[1], color[2], color[3])
+        love.graphics.setColor(1, 1, 1)
+        local direction = p.direction or "down"
+        local state = p.state or "idle"
+        local currentFrame = p.currentFrame or 1
+        local animation = player.animations[direction]
+        local image = (state == "idle") and animation.idle or animation[state][currentFrame]
+
+        local drawScale = settings.PLAYER_SPRITE_SCALE
+        local drawWidth = image:getWidth() * drawScale
+        local drawHeight = image:getHeight() * drawScale
+        local drawX = p.x + (player.size - drawWidth) / 2
+        local drawY = p.y + (player.size - drawHeight) / 2
+
+        love.graphics.draw(image, drawX, drawY, 0, drawScale, drawScale)
+
+        if debug.isEnabled() then
+            love.graphics.setColor(1, 0, 0, 0.5)
+            love.graphics.rectangle('line', p.x + player.colliderOffset, p.y + player.colliderOffset, player.colliderSize, player.colliderSize)
         end
-        love.graphics.rectangle('fill', p.x, p.y, player.size, player.size)
 
         if id == network.id and player.spawnEffectPlaying then
             spawnEffect.draw(p.x - player.size / 2, p.y - player.size / 2)
         elseif p.spawnEffectPlaying then
             spawnEffect.draw(p.x - player.size / 2, p.y - player.size / 2)
-        end
-
-        if debug.isEnabled() then
-            love.graphics.setColor(1, 0, 0, 0.5)
-            love.graphics.rectangle('line', p.x + player.colliderOffset, p.y + player.colliderOffset, player.colliderSize, player.colliderSize)
         end
     end
 
@@ -204,20 +247,20 @@ function player.draw(camera)
         player.currentItem:draw(player)
     end
 
-    love.graphics.setShader(darknessShader)
+    -- love.graphics.setShader(darknessShader)
 
-    local playerScreenX = player.x + player.size / 2 - camera.x
-    local playerScreenY = player.y + player.size / 2 - camera.y
+    -- local playerScreenX = player.x + player.size / 2 - camera.x
+    -- local playerScreenY = player.y + player.size / 2 - camera.y
 
-    darknessShader:send("playerPos", {playerScreenX, playerScreenY})
-    darknessShader:send("radius", baseRadius)
-    darknessShader:send("screenSize", {screenWidth, screenHeight})
-    darknessShader:send("glowColor", {0.8, 0.6, 0.2})
+    -- darknessShader:send("playerPos", {playerScreenX, playerScreenY})
+    -- darknessShader:send("radius", baseRadius)
+    -- darknessShader:send("screenSize", {screenWidth, screenHeight})
+    -- darknessShader:send("glowColor", {0.8, 0.6, 0.2})
 
-    love.graphics.setColor(0, 0, 0, 1)
-    love.graphics.rectangle('fill', camera.x, camera.y, camera.width, camera.height)
+    -- love.graphics.setColor(0, 0, 0, 1)
+    -- love.graphics.rectangle('fill', camera.x, camera.y, camera.width, camera.height)
 
-    love.graphics.setShader()
+    -- love.graphics.setShader()
 
     -- WORLD GRID
     if debug.isEnabled() then
