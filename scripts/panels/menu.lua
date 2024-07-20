@@ -11,7 +11,7 @@ local buttons = {
 }
 
 function menu.load()
-    menu.font = love.graphics.newFont(24)
+    -- Удалено: menu.font = love.graphics.newFont(24)
 end
 
 function menu.update(dt)
@@ -22,7 +22,7 @@ function menu.draw()
         serverSelector.draw()
     else
         local windowWidth, windowHeight = love.graphics.getDimensions()
-        love.graphics.setFont(menu.font)
+        love.graphics.setFont(globalFont)  -- Используем глобальный шрифт
         for i, button in ipairs(buttons) do
             local buttonWidth = 200
             local buttonHeight = 50
@@ -32,7 +32,7 @@ function menu.draw()
             love.graphics.setColor(0.5, 0.5, 0.5)
             love.graphics.rectangle('fill', x, y, buttonWidth, buttonHeight)
             love.graphics.setColor(1, 1, 1)
-            love.graphics.printf(button.text, x, y + buttonHeight / 2 - menu.font:getHeight() / 2, buttonWidth, 'center')
+            love.graphics.printf(button.text, x, y + buttonHeight / 2 - globalFont:getHeight() / 2, buttonWidth, 'center')
         end
     end
 end

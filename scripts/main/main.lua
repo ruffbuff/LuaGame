@@ -16,6 +16,7 @@ local input = require("scripts.utils.input")
 local spawnEffect = require("scripts.effects.spawnEffect")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
+local customFont
 
 local function startGame(address, port)
     network.connectToServer(address, port)
@@ -29,6 +30,8 @@ local function resetGame()
     camera.load()
 end
 
+globalFont = nil
+
 function love.load(dt)
     love.window.setMode(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, {
         resizable = settings.WINDOW_RESIZABLE,
@@ -36,6 +39,10 @@ function love.load(dt)
         minheight = 600
     })
     love.window.setTitle(settings.GAME_NAME)
+    globalFont = love.graphics.newFont(settings.FONT_PATH, settings.FONT_SIZE)
+    
+    -- Установка шрифта как глобального
+    love.graphics.setFont(globalFont)
     tiles.load()
     world.load()
 
@@ -96,6 +103,7 @@ function love.update(dt)
 end
 
 function love.draw()
+    love.graphics.setFont(globalFont)
     if gameState == "game" then
         camera.set()
         world.draw()

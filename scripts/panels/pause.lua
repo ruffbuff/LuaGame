@@ -11,7 +11,6 @@ local buttons = {
 }
 
 function pause.load()
-    pause.font = love.graphics.newFont(24)
 end
 
 function pause.update(dt)
@@ -21,7 +20,7 @@ function pause.draw()
     love.graphics.setColor(0, 0, 0, 0.5)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
     
-    love.graphics.setFont(pause.font)
+    love.graphics.setFont(globalFont)
     for i, button in ipairs(buttons) do
         local buttonWidth = 200
         local buttonHeight = 50
@@ -31,7 +30,7 @@ function pause.draw()
         love.graphics.setColor(0.5, 0.5, 0.5)
         love.graphics.rectangle('fill', x, y, buttonWidth, buttonHeight)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf(button.text, x, y + buttonHeight / 2 - pause.font:getHeight() / 2, buttonWidth, 'center')
+        love.graphics.printf(button.text, x, y + buttonHeight / 2 - globalFont:getHeight() / 2, buttonWidth, 'center')
     end
 end
 

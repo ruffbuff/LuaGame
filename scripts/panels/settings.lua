@@ -111,8 +111,6 @@ function settingsModal.draw()
         for i, color in ipairs(settings.playerColors) do
             local rectX = contentX + 200 + (i - 1) * 50
             local rectY = contentY + 30
-            
-            -- Установка цвета квадратика
             if color == "red" then
                 love.graphics.setColor(1, 0, 0)
             elseif color == "green" then
@@ -131,7 +129,7 @@ function settingsModal.draw()
                 love.graphics.setColor(1, 1, 1)
                 love.graphics.rectangle("line", rectX, rectY, 40, 40)
             end
-            
+
             love.graphics.setColor(1, 1, 1)
             love.graphics.print(color, rectX, rectY + 45)
         end
