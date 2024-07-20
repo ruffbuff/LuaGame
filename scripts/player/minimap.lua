@@ -28,8 +28,21 @@ function minimap.draw()
     love.graphics.setColor(1, 0, 0, 0.1)
     love.graphics.rectangle("fill", viewportX, viewportY, viewportWidth, viewportHeight)
 
-    -- Установка цвета игрока
-    local playerColor = {1, 0, 0}  -- По умолчанию красный
+    for y = 1, settings.WORLD_HEIGHT do
+        for x = 1, settings.WORLD_WIDTH do
+            local tileType = world.map[y][x]
+            if tileType and tileType > 0 then
+                love.graphics.setColor(0.5, 0.5, 0.5, 0.5)
+                love.graphics.rectangle("fill", 
+                    mapX + (x-1) * mapScale * settings.TILE_SIZE, 
+                    mapY + (y-1) * mapScale * settings.TILE_SIZE, 
+                    mapScale * settings.TILE_SIZE, 
+                    mapScale * settings.TILE_SIZE)
+            end
+        end
+    end
+
+    local playerColor = {1, 0, 0}
     if settings.playerColor == "blue" then
         playerColor = {0, 0, 1}
     elseif settings.playerColor == "green" then
@@ -43,22 +56,8 @@ function minimap.draw()
     love.graphics.setColor(playerColor[1], playerColor[2], playerColor[3])
     love.graphics.circle("fill", mapX + playerX, mapY + playerY, 4)
 
-    for y = 1, settings.WORLD_HEIGHT do
-        for x = 1, settings.WORLD_WIDTH do
-            local tile = world.map[y][x]
-            if tile then
-                love.graphics.setColor(tile.color[1], tile.color[2], tile.color[3], 0.5)
-                love.graphics.rectangle("fill", 
-                    mapX + (x-1) * mapScale * settings.TILE_SIZE, 
-                    mapY + (y-1) * mapScale * settings.TILE_SIZE, 
-                    mapScale * settings.TILE_SIZE, 
-                    mapScale * settings.TILE_SIZE)
-            end
-        end
-    end
-
     for id, otherPlayer in pairs(player.otherPlayers) do
-        local otherPlayerColor = {1, 0, 0}  -- По умолчанию красный
+        local otherPlayerColor = {1, 0, 0}
         if otherPlayer.color == "blue" then
             otherPlayerColor = {0, 0, 1}
         elseif otherPlayer.color == "green" then

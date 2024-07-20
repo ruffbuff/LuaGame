@@ -29,7 +29,10 @@ local player = {
     state = "idle",
     animationTimer = 0,
     currentFrame = 1,
-    animations = {}
+    animations = {},
+    hookAnimationTimer = 0,
+    hookAnimationFrame = 1,
+    isHooking = false
 }
 
 local function loadAnimations()
@@ -51,6 +54,14 @@ local function loadAnimations()
                 table.insert(player.animations[color][dir].run, frame)
             end
         end
+    end
+    
+    -- Загружаем анимацию хука только для красного кота
+    player.animations["red"].hook = {}
+    for i = 0, 3 do
+        local hookFrame = love.graphics.newImage("assets/images/red-cat/hook/" .. i .. ".png")
+        hookFrame:setFilter("nearest", "nearest")
+        table.insert(player.animations["red"].hook, hookFrame)
     end
 end
 
@@ -124,7 +135,34 @@ function player.dash(dx, dy)
     end
 end
 
+function player.updateStateAfterHook()
+    local dx, dy = 0, 0
+    if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1 end
+    if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1 end
+    if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1 end
+    if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1 end
+
+    if dx ~= 0 or dy ~= 0 then
+        player.state = "walk"
+        if dx < 0 then player.direction = "left"
+        elseif dx > 0 then player.direction = "right"
+        elseif dy < 0 then player.direction = "up"
+        elseif dy > 0 then player.direction = "down"
+        end
+    else
+        player.state = "idle"
+    end
+    player.currentFrame = 1  -- Сбрасываем текущий кадр анимации
+end
+
 function player.update(dt, chat)
+    if player.currentItem and player.currentItem.state ~= "idle" then
+        player.isHooking = true
+        player.state = "hook"
+    else
+        player.isHooking = false
+    end
+
     if player.spawnEffectPlaying then
         spawnEffect.update(dt)
         if not spawnEffect.isPlaying then
@@ -146,17 +184,26 @@ function player.update(dt, chat)
             dy = dy / math.sqrt(2)
         end
 
-        if dx == 0 and dy == 0 then
+        if dx == 0 and dy == 0 and not player.isHooking then
             player.state = "idle"
-        else
+        elseif not player.isHooking then
             player.state = love.keyboard.isDown(settings.MOVE_FAST_KEY) and "run" or "walk"
         end
 
-        local animationSpeed = (player.state == "run") and 0.1 or 0.2
-        player.animationTimer = player.animationTimer + dt
-        if player.animationTimer >= animationSpeed then
-            player.animationTimer = player.animationTimer - animationSpeed
-            player.currentFrame = player.currentFrame % 4 + 1
+        if player.isHooking then
+            player.state = "hook"
+            player.hookAnimationTimer = player.hookAnimationTimer + dt
+            if player.hookAnimationTimer >= 0.1 then
+                player.hookAnimationTimer = player.hookAnimationTimer - 0.1
+                player.hookAnimationFrame = player.hookAnimationFrame % 4 + 1
+            end
+        else
+            local animationSpeed = (player.state == "run") and 0.1 or 0.2
+            player.animationTimer = player.animationTimer + dt
+            if player.animationTimer >= animationSpeed then
+                player.animationTimer = player.animationTimer - animationSpeed
+                player.currentFrame = player.currentFrame % 4 + 1
+            end
         end
 
         player.dashCooldown = math.max(0, player.dashCooldown - dt)
@@ -198,8 +245,6 @@ function player.update(dt, chat)
             player.velocityY = 0
         end
 
-        player.isOnEntrance = tiles.isOnEntrance(player.x + player.size / 2, player.y + player.size / 2, player.size)
-
         player.otherPlayers = {}
         for id, p in pairs(network.players) do
             if id ~= network.id then
@@ -217,7 +262,13 @@ function player.draw(camera)
         local currentFrame = p.currentFrame or 1
         local color = p.color or "red"
         local animation = player.animations[color][direction]
-        local image = (state == "idle") and animation.idle or animation[state][currentFrame]
+        local image
+
+        if state == "hook" and color == "red" then
+            image = player.animations["red"].hook[p.hookAnimationFrame or 1]
+        else
+            image = (state == "idle") and animation.idle or animation[state][currentFrame]
+        end
 
         local drawScale = settings.PLAYER_SPRITE_SCALE
         local drawWidth = image:getWidth() * drawScale

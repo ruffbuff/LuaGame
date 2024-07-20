@@ -4,6 +4,7 @@ local settings = require("scripts.main.settings")
 local debug = require("scripts.main.debug")
 local player = require("scripts.player.player")
 local world = require("scripts.world.world")
+local tiles = require("scripts.world.tiles")
 local camera = require("scripts.player.camera")
 local menu = require("scripts.panels.menu")
 local pause = require("scripts.panels.pause")
@@ -22,6 +23,7 @@ local function startGame(address, port)
 end
 
 local function resetGame()
+    tiles.load()
     world.load()
     player.load()
     camera.load()
@@ -34,6 +36,8 @@ function love.load(dt)
         minheight = 600
     })
     love.window.setTitle(settings.GAME_NAME)
+    tiles.load()
+    world.load()
 
     spawnEffect.load()
     player.load()
@@ -73,14 +77,12 @@ function love.update(dt)
     end
 
     if gameState == "game" then
-        world.update(dt, player)
         player.update(dt, chat)
         spawnEffect.update(dt)
         camera.update(dt)
     elseif gameState == "menu" then
         menu.update(dt)
     elseif gameState == "pause" then
-        world.update(dt, player)
         player.update(dt, chat)
         camera.update(dt)
         pause.update(dt)
