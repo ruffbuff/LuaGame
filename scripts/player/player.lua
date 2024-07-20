@@ -5,8 +5,6 @@ local network = require("scripts.network.network")
 local tiles = require("scripts.world.tiles")
 local debug = require("scripts.main.debug")
 local items = require("scripts.items.items")
-local spawnEffect = require("scripts.effects.spawnEffect")
-local eventManager = require("scripts.utils.eventManager")
 local darknessShader = require("scripts.shaders.darkness")
 
 local player = {
@@ -21,10 +19,9 @@ local player = {
     dashCooldown = 0,
     dashCooldownDuration = 1,
     baseSpeed = settings.PLAYER_SPEED,
-    fastMultiplier = 2,
+    fastMultiplier = 1.5,
     otherPlayers = {},
     currentItem = items.grapplingHook,
-    spawnEffectPlaying = false,
     direction = "down",
     state = "idle",
     animationTimer = 0,
@@ -55,8 +52,7 @@ local function loadAnimations()
             end
         end
     end
-    
-    -- Загружаем анимацию хука только для красного кота
+
     player.animations["red"].hook = {}
     for i = 0, 3 do
         local hookFrame = love.graphics.newImage("assets/images/red-cat/hook/" .. i .. ".png")
@@ -68,20 +64,6 @@ end
 function player.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     loadAnimations()
-    spawnEffect.load()
-    eventManager.addListener("playerSpawned", player.playSpawnEffect)
-    eventManager.addListener("otherPlayerSpawned", player.playOtherPlayerSpawnEffect)
-end
-
-function player.playSpawnEffect()
-    player.spawnEffectPlaying = true
-    spawnEffect.play()
-end
-
-function player.playOtherPlayerSpawnEffect(id)
-    if network.players[id] then
-        network.players[id].spawnEffectPlaying = true
-    end
 end
 
 local function resolveCollision(newX, newY)
@@ -152,10 +134,10 @@ function player.updateStateAfterHook()
     else
         player.state = "idle"
     end
-    player.currentFrame = 1  -- Сбрасываем текущий кадр анимации
+    player.currentFrame = 1
 end
 
-function player.update(dt, chat)
+function player.update(dt)
     if player.currentItem and player.currentItem.state ~= "idle" then
         player.isHooking = true
         player.state = "hook"
@@ -163,93 +145,84 @@ function player.update(dt, chat)
         player.isHooking = false
     end
 
-    if player.spawnEffectPlaying then
-        spawnEffect.update(dt)
-        if not spawnEffect.isPlaying then
-            player.spawnEffectPlaying = false
+    local dx, dy = 0, 0
+    local oldDirection = player.direction
+
+    if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1; player.direction = "left" end
+    if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1; player.direction = "right" end
+    if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1; player.direction = "up" end
+    if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1; player.direction = "down" end
+
+    if dx ~= 0 and dy ~= 0 then
+        dx = dx / math.sqrt(2)
+        dy = dy / math.sqrt(2)
+    end
+
+    if dx == 0 and dy == 0 and not player.isHooking then
+        player.state = "idle"
+    elseif not player.isHooking then
+        player.state = love.keyboard.isDown(settings.MOVE_FAST_KEY) and "run" or "walk"
+    end
+
+    if player.isHooking then
+        player.state = "hook"
+        player.hookAnimationTimer = player.hookAnimationTimer + dt
+        if player.hookAnimationTimer >= 0.1 then
+            player.hookAnimationTimer = player.hookAnimationTimer - 0.1
+            player.hookAnimationFrame = player.hookAnimationFrame % 4 + 1
+        end
+    else
+        local animationSpeed = (player.state == "run") and 0.1 or 0.2
+        player.animationTimer = player.animationTimer + dt
+        if player.animationTimer >= animationSpeed then
+            player.animationTimer = player.animationTimer - animationSpeed
+            player.currentFrame = player.currentFrame % 4 + 1
         end
     end
 
-    if not chat.isActive then
-        local dx, dy = 0, 0
-        local oldDirection = player.direction
+    player.dashCooldown = math.max(0, player.dashCooldown - dt)
 
-        if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1; player.direction = "left" end
-        if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1; player.direction = "right" end
-        if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1; player.direction = "up" end
-        if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1; player.direction = "down" end
-
-        if dx ~= 0 and dy ~= 0 then
-            dx = dx / math.sqrt(2)
-            dy = dy / math.sqrt(2)
+    if love.keyboard.isDown(settings.DASH_KEY) then
+        if dx ~= 0 or dy ~= 0 then
+            player.dash(dx, dy)
         end
+    end
 
-        if dx == 0 and dy == 0 and not player.isHooking then
-            player.state = "idle"
-        elseif not player.isHooking then
-            player.state = love.keyboard.isDown(settings.MOVE_FAST_KEY) and "run" or "walk"
-        end
+    local speedMultiplier = love.keyboard.isDown(settings.MOVE_FAST_KEY) and player.fastMultiplier or 1
+    local currentSpeed = player.baseSpeed * speedMultiplier
 
-        if player.isHooking then
-            player.state = "hook"
-            player.hookAnimationTimer = player.hookAnimationTimer + dt
-            if player.hookAnimationTimer >= 0.1 then
-                player.hookAnimationTimer = player.hookAnimationTimer - 0.1
-                player.hookAnimationFrame = player.hookAnimationFrame % 4 + 1
-            end
-        else
-            local animationSpeed = (player.state == "run") and 0.1 or 0.2
-            player.animationTimer = player.animationTimer + dt
-            if player.animationTimer >= animationSpeed then
-                player.animationTimer = player.animationTimer - animationSpeed
-                player.currentFrame = player.currentFrame % 4 + 1
-            end
-        end
+    local oldX, oldY = player.x, player.y
+    local newX = player.x + dx * currentSpeed * dt
+    local newY = player.y + dy * currentSpeed * dt
 
-        player.dashCooldown = math.max(0, player.dashCooldown - dt)
+    player.x, player.y = resolveCollision(newX, newY)
 
-        if love.keyboard.isDown(settings.DASH_KEY) then
-            if dx ~= 0 or dy ~= 0 then
-                player.dash(dx, dy)
-            end
-        end
+    player.currentSpeed = math.sqrt((player.x - oldX)^2 + (player.y - oldY)^2) / dt
 
-        local speedMultiplier = love.keyboard.isDown(settings.MOVE_FAST_KEY) and player.fastMultiplier or 1
-        local currentSpeed = player.baseSpeed * speedMultiplier
+    player.x = math.max(0, math.min(player.x, settings.WORLD_WIDTH * settings.TILE_SIZE - player.size))
+    player.y = math.max(0, math.min(player.y, settings.WORLD_HEIGHT * settings.TILE_SIZE - player.size))
 
-        local oldX, oldY = player.x, player.y
-        local newX = player.x + dx * currentSpeed * dt
-        local newY = player.y + dy * currentSpeed * dt
+    if network.id and network.players[network.id] then
+        network.players[network.id].x = player.x
+        network.players[network.id].y = player.y
+        network.players[network.id].direction = player.direction
+        network.players[network.id].state = player.state
+        network.players[network.id].currentFrame = player.currentFrame
+    end
 
-        player.x, player.y = resolveCollision(newX, newY)
+    if player.currentItem then
+        player.currentItem:update(dt, player)
+    end
 
-        player.currentSpeed = math.sqrt((player.x - oldX)^2 + (player.y - oldY)^2) / dt
+    if not (player.currentItem and player.currentItem.state == "attached") then
+        player.velocityX = 0
+        player.velocityY = 0
+    end
 
-        player.x = math.max(0, math.min(player.x, settings.WORLD_WIDTH * settings.TILE_SIZE - player.size))
-        player.y = math.max(0, math.min(player.y, settings.WORLD_HEIGHT * settings.TILE_SIZE - player.size))
-
-        if network.id and network.players[network.id] then
-            network.players[network.id].x = player.x
-            network.players[network.id].y = player.y
-            network.players[network.id].direction = player.direction
-            network.players[network.id].state = player.state
-            network.players[network.id].currentFrame = player.currentFrame
-        end
-
-        if player.currentItem then
-            player.currentItem:update(dt, player)
-        end
-
-        if not (player.currentItem and player.currentItem.state == "attached") then
-            player.velocityX = 0
-            player.velocityY = 0
-        end
-
-        player.otherPlayers = {}
-        for id, p in pairs(network.players) do
-            if id ~= network.id then
-                player.otherPlayers[id] = p
-            end
+    player.otherPlayers = {}
+    for id, p in pairs(network.players) do
+        if id ~= network.id then
+            player.otherPlayers[id] = p
         end
     end
 end
@@ -281,12 +254,6 @@ function player.draw(camera)
         if debug.isEnabled() then
             love.graphics.setColor(1, 0, 0, 0.5)
             love.graphics.rectangle('line', p.x + player.colliderOffset, p.y + player.colliderOffset, player.colliderSize, player.colliderSize)
-        end
-
-        if id == network.id and player.spawnEffectPlaying then
-            spawnEffect.draw(p.x - player.size / 2, p.y - player.size / 2)
-        elseif p.spawnEffectPlaying then
-            spawnEffect.draw(p.x - player.size / 2, p.y - player.size / 2)
         end
     end
 

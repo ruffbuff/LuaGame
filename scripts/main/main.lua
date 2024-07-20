@@ -10,10 +10,7 @@ local menu = require("scripts.panels.menu")
 local pause = require("scripts.panels.pause")
 local settingsModal = require("scripts.panels.settings")
 local network = require("scripts.network.network")
-local minimap = require("scripts.player.minimap")
-local chat = require("scripts.player.chat")
 local input = require("scripts.utils.input")
-local spawnEffect = require("scripts.effects.spawnEffect")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 local customFont
@@ -40,20 +37,17 @@ function love.load(dt)
     })
     love.window.setTitle(settings.GAME_NAME)
     globalFont = love.graphics.newFont(settings.FONT_PATH, settings.FONT_SIZE)
-    
-    -- Установка шрифта как глобального
+
     love.graphics.setFont(globalFont)
     tiles.load()
     world.load()
 
-    spawnEffect.load()
     player.load()
     menu.load()
     pause.load()
     settingsModal.load()
 
     menu.startGame = startGame
-    chat.load()
     love.keyboard.setKeyRepeat(true)
 
     pause.resume = function()
@@ -68,8 +62,6 @@ function love.load(dt)
         network.disconnect()
         gameState = "menu"
     end
-
-    network.setChatCallback(chat.receiveMessage)
 end
 
 function love.update(dt)
@@ -84,13 +76,12 @@ function love.update(dt)
     end
 
     if gameState == "game" then
-        player.update(dt, chat)
-        spawnEffect.update(dt)
+        player.update(dt)
         camera.update(dt)
     elseif gameState == "menu" then
         menu.update(dt)
     elseif gameState == "pause" then
-        player.update(dt, chat)
+        player.update(dt)
         camera.update(dt)
         pause.update(dt)
     end
@@ -98,8 +89,6 @@ function love.update(dt)
     if settingsModal.active then
         settingsModal.update(dt)
     end
-
-    chat.update(dt)
 end
 
 function love.draw()
@@ -108,8 +97,6 @@ function love.draw()
         camera.set()
         world.draw()
         camera.unset()
-        minimap.draw()
-        chat.draw()
         debug.draw(player, network, gameState)
     elseif gameState == "menu" then
         menu.draw()
@@ -127,10 +114,6 @@ function love.draw()
     end
 end
 
-function love.textinput(t)
-    chat.textinput(t)
-end
-
 function love.keypressed(key)
     if settingsModal.active then
         if key == settings.PAUSE_TOGGLE_KEY then
@@ -138,7 +121,7 @@ function love.keypressed(key)
         else
             settingsModal.keypressed(key)
         end
-    elseif not chat.keypressed(key) then
+    else
         if key == settings.DEBUG_TOGGLE_KEY then
             debug.toggle()
         elseif key == settings.PAUSE_TOGGLE_KEY then
@@ -161,12 +144,7 @@ function love.keyreleased(key)
     end
 end
 
-function love.wheelmoved(x, y)
-    chat.wheelmoved(x, y)
-end
-
 function love.mousepressed(x, y, button)
-    chat.mousepressed(x, y, button)
     if gameState == "menu" then
         menu.mousepressed(x, y, button)
     elseif gameState == "pause" then

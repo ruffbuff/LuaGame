@@ -2,7 +2,6 @@
 
 local socket = require("socket")
 local settings = require("scripts.main.settings")
-local eventManager = require("scripts.utils.eventManager")
 
 local network = {
     udp = socket.udp(),
@@ -14,7 +13,6 @@ local network = {
     lastPingSent = 0,
     ping = nil,
     connected = false,
-    chatCallback = nil
 }
 
 function network.connectToServer(address, port)
@@ -61,13 +59,7 @@ function network.update()
                 settings.playerColor = color
                 network.players[network.id] = {x = 1568, y = 1568, color = color}
                 print("Connected to server with ID: " .. network.id .. " and color: " .. color)
-                eventManager.triggerEvent("playerSpawned", network.id)
                 return "ID_RECEIVED"
-            elseif data:sub(1, 6) == "SPAWN:" then
-                local id = tonumber(data:sub(7))
-                if network.players[id] then
-                    eventManager.triggerEvent("otherPlayerSpawned", id)
-                end
             elseif data:sub(1, 6) == "COLOR:" then
                 local id, color = data:match("COLOR:(%d+),(%w+)")
                 id = tonumber(id)
@@ -79,11 +71,6 @@ function network.update()
                 end
             elseif data == "START" then
                 return "START"
-            elseif data:sub(1, 5) == "CHAT:" then
-                local message = data:sub(6)
-                if network.chatCallback then
-                    network.chatCallback(message)
-                end
             else
                 local newPlayers = {}
                 for playerData in data:gmatch("[^;]+") do
@@ -147,22 +134,6 @@ function network.sendPosition(x, y, direction, state, currentFrame)
         )
         network.udp:send(message)
     end
-end
-
-function network.sendSpawnEffect()
-    if network.id then
-        network.udp:send("SPAWN:" .. network.id)
-    end
-end
-
-function network.sendChatMessage(message)
-    if network.id then
-        network.udp:send("CHAT:" .. message)
-    end
-end
-
-function network.setChatCallback(callback)
-    network.chatCallback = callback
 end
 
 function network.disconnect()

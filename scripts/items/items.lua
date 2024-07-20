@@ -21,6 +21,12 @@ local grapplingHook = {
     swingDamping = 0.98,
 }
 
+function grapplingHook:use(player)
+    local mx, my = love.mouse.getPosition()
+    local worldX, worldY = camera.x + mx, camera.y + my
+    self:shoot(player, worldX, worldY)
+end
+
 function grapplingHook:shoot(player, mouseX, mouseY)
     if self.state == "idle" then
         local offsetY = player.size * 0.18
