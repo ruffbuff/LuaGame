@@ -6,6 +6,7 @@ local tiles = require("scripts.world.tiles")
 local debug = require("scripts.main.debug")
 local items = require("scripts.items.items")
 local darknessShader = require("scripts.shaders.darkness")
+local camera = require("scripts.player.camera")
 
 local player = {
     x = 1568,
@@ -29,11 +30,15 @@ local player = {
     animations = {},
     hookAnimationTimer = 0,
     hookAnimationFrame = 1,
-    isHooking = false
+    isHooking = false,
+    targetX = nil,
+    targetY = nil,
+    moveThreshold = 5
 }
 
 local function loadAnimations()
     player.animations = {}
+
     for _, color in ipairs(settings.playerColors) do
         player.animations[color] = {}
         local directions = {"down", "up", "left", "right"}
@@ -59,6 +64,11 @@ local function loadAnimations()
         hookFrame:setFilter("nearest", "nearest")
         table.insert(player.animations["red"].hook, hookFrame)
     end
+end
+
+function player.setTarget(x, y)
+    player.targetX = x
+    player.targetY = y
 end
 
 function player.load()
@@ -137,7 +147,7 @@ function player.updateStateAfterHook()
     player.currentFrame = 1
 end
 
-function player.update(dt)
+function player.update(dt, camera)
     if player.currentItem and player.currentItem.state ~= "idle" then
         player.isHooking = true
         player.state = "hook"
@@ -148,14 +158,49 @@ function player.update(dt)
     local dx, dy = 0, 0
     local oldDirection = player.direction
 
-    if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1; player.direction = "left" end
-    if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1; player.direction = "right" end
-    if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1; player.direction = "up" end
-    if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1; player.direction = "down" end
+    if settings.MOVEMENT_TYPE == "mouse" then
+        if player.targetX and player.targetY then
+            dx = player.targetX - player.x
+            dy = player.targetY - player.y
+            local length = math.sqrt(dx*dx + dy*dy)
+            if length > player.moveThreshold then
+                dx = dx / length
+                dy = dy / length
+            else
+                player.targetX = nil
+                player.targetY = nil
+                dx, dy = 0, 0
+            end
+        end
+    elseif settings.MOVEMENT_TYPE == "wasd" then
+        if love.keyboard.isDown(settings.MOVE_LEFT_KEY) then dx = dx - 1 end
+        if love.keyboard.isDown(settings.MOVE_RIGHT_KEY) then dx = dx + 1 end
+        if love.keyboard.isDown(settings.MOVE_UP_KEY) then dy = dy - 1 end
+        if love.keyboard.isDown(settings.MOVE_DOWN_KEY) then dy = dy + 1 end
+    elseif settings.MOVEMENT_TYPE == "arrows" then
+        if love.keyboard.isDown("left") then dx = dx - 1 end
+        if love.keyboard.isDown("right") then dx = dx + 1 end
+        if love.keyboard.isDown("up") then dy = dy - 1 end
+        if love.keyboard.isDown("down") then dy = dy + 1 end
+    end
+
+    if dx < 0 then player.direction = "left"
+    elseif dx > 0 then player.direction = "right"
+    elseif dy < 0 then player.direction = "up"
+    elseif dy > 0 then player.direction = "down"
+    end
 
     if dx ~= 0 and dy ~= 0 then
         dx = dx / math.sqrt(2)
         dy = dy / math.sqrt(2)
+    end
+
+    if dx ~= 0 or dy ~= 0 then
+        if math.abs(dx) > math.abs(dy) then
+            player.direction = dx > 0 and "right" or "left"
+        else
+            player.direction = dy > 0 and "down" or "up"
+        end
     end
 
     if dx == 0 and dy == 0 and not player.isHooking then

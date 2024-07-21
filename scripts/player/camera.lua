@@ -1,7 +1,6 @@
 -- scripts/player/camera.lua
 
 local settings = require("scripts.main.settings")
-local player = require("scripts.player.player")
 
 local camera = {
     x = 0,
@@ -12,14 +11,14 @@ local camera = {
     height = love.graphics.getHeight()
 }
 
-function camera.load()
-    camera.x = player.x - camera.width / 2 + player.size / 2
-    camera.y = player.y - camera.height / 2 + player.size / 2
+function camera.load(playerX, playerY, playerSize)
+    camera.x = playerX - camera.width / 2 + playerSize / 2
+    camera.y = playerY - camera.height / 2 + playerSize / 2
 end
 
-function camera.update(dt)
-    local targetX = player.x - camera.width / 2 + player.size / 2
-    local targetY = player.y - camera.height / 2 + player.size / 2
+function camera.update(dt, playerX, playerY, playerSize)
+    local targetX = playerX - camera.width / 2 + playerSize / 2
+    local targetY = playerY - camera.height / 2 + playerSize / 2
 
     camera.x = camera.x + (targetX - camera.x) * camera.smoothness
     camera.y = camera.y + (targetY - camera.y) * camera.smoothness

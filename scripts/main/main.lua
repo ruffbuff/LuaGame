@@ -11,6 +11,7 @@ local pause = require("scripts.panels.pause")
 local settingsModal = require("scripts.panels.settings")
 local network = require("scripts.network.network")
 local input = require("scripts.utils.input")
+local cursor = require("scripts.ui.cursor")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 local customFont
@@ -24,7 +25,7 @@ local function resetGame()
     tiles.load()
     world.load()
     player.load()
-    camera.load()
+    camera.load(player.x, player.y, player.size)
 end
 
 globalFont = nil
@@ -35,6 +36,8 @@ function love.load(dt)
         minwidth = 800,
         minheight = 600
     })
+    love.mouse.setVisible(false)  -- Скрыть системный курсор
+
     love.window.setTitle(settings.GAME_NAME)
     globalFont = love.graphics.newFont(settings.FONT_PATH, settings.FONT_SIZE)
 
@@ -75,14 +78,16 @@ function love.update(dt)
         end
     end
 
+    cursor.update()  -- Обновление позиции курсора
+
     if gameState == "game" then
-        player.update(dt)
-        camera.update(dt)
+        player.update(dt, camera)
+        camera.update(dt, player.x, player.y, player.size)
     elseif gameState == "menu" then
         menu.update(dt)
     elseif gameState == "pause" then
-        player.update(dt)
-        camera.update(dt)
+        player.update(dt, camera)
+        camera.update(dt, player.x, player.y, player.size)
         pause.update(dt)
     end
 
@@ -112,6 +117,7 @@ function love.draw()
             debug.draw(player, network, gameState)
         end
     end
+    cursor.draw()
 end
 
 function love.keypressed(key)
@@ -145,7 +151,26 @@ function love.keyreleased(key)
 end
 
 function love.mousepressed(x, y, button)
-    if gameState == "menu" then
+    if gameState == "game" then
+        local worldX, worldY = camera:mousePosition()
+        local clickedOnPlayer = false
+        
+        for id, p in pairs(network.players) do
+            if id ~= network.id then
+                local dx = worldX - p.x
+                local dy = worldY - p.y
+                if dx*dx + dy*dy < player.size*player.size then
+                    print("Clicked on player " .. id)
+                    clickedOnPlayer = true
+                    break
+                end
+            end
+        end
+        
+        if not clickedOnPlayer and settings.MOVEMENT_TYPE == "mouse" and button == 1 then
+            player.setTarget(worldX, worldY)
+        end
+    elseif gameState == "menu" then
         menu.mousepressed(x, y, button)
     elseif gameState == "pause" then
         if settingsModal.active then

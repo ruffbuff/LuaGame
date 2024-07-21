@@ -38,6 +38,7 @@ function settingsModal.loadSettings()
             settings[key] = value
         end
     end
+    settings.MOVEMENT_TYPE = settings.MOVEMENT_TYPE or "wasd"
 end
 
 function settingsModal.saveSettings()
@@ -53,7 +54,8 @@ function settingsModal.saveSettings()
         FULLSCREEN_TOGGLE_KEY = settings.FULLSCREEN_TOGGLE_KEY,
         GRAPPLING_HOOK_SHOOT_KEY = settings.GRAPPLING_HOOK_SHOOT_KEY,
         GRAPPLING_HOOK_DETACH_KEY = settings.GRAPPLING_HOOK_DETACH_KEY,
-        playerColor = settings.playerColor
+        playerColor = settings.playerColor,
+        MOVEMENT_TYPE = settings.MOVEMENT_TYPE,
     }
     love.filesystem.write("settings.json", json.encode(settingsToSave))
 end
@@ -66,7 +68,7 @@ function settingsModal.update(dt)
             settingsModal.waitingForInput = false
             settingsModal.selectedHotkey = nil
             settingsModal.saveSettings()
-            pressedKeys = {} -- Очистить список нажатых клавиш
+            pressedKeys = {}
         end
     end
 end
@@ -78,8 +80,8 @@ function settingsModal.draw()
     love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 
     love.graphics.setColor(0.2, 0.2, 0.2, 0.9)
-    local modalWidth = 740
-    local modalHeight = 640
+    local modalWidth = 840
+    local modalHeight = 740
     local modalX = (love.graphics.getWidth() - modalWidth) / 2
     local modalY = (love.graphics.getHeight() - modalHeight) / 2
     love.graphics.rectangle("fill", modalX, modalY, modalWidth, modalHeight)
@@ -134,6 +136,19 @@ function settingsModal.draw()
             love.graphics.print(color, rectX, rectY + 45)
         end
 
+        love.graphics.print("Movement Type:", contentX, contentY + 500)
+        local movementTypes = {"WASD", "Arrows", "Mouse"}
+        for i, movType in ipairs(movementTypes) do
+            local rectX = contentX + 200 + (i - 1) * 100
+            local rectY = contentY + 490
+            love.graphics.rectangle("line", rectX, rectY, 80, 30)
+            if settings.MOVEMENT_TYPE == movType:lower() then
+                love.graphics.rectangle("fill", rectX, rectY, 80, 30)
+            end
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.print(movType, rectX + 10, rectY + 5)
+        end
+
         local hotkeyY = contentY + 100
         local hotkeySettings = {
             {"Move Up", "MOVE_UP_KEY"},
@@ -176,8 +191,8 @@ end
 function settingsModal.mousepressed(x, y, button, network)
     if not settingsModal.active then return end
 
-    local modalWidth = 740
-    local modalHeight = 640
+    local modalWidth = 840
+    local modalHeight = 740
     local modalX = (love.graphics.getWidth() - modalWidth) / 2
     local modalY = (love.graphics.getHeight() - modalHeight) / 2
 
@@ -202,6 +217,17 @@ function settingsModal.mousepressed(x, y, button, network)
                 settings.playerColor = color
                 network.setPlayerColor(color)
                 network.sendPlayerColor(color)
+                settingsModal.saveSettings()
+                break
+            end
+        end
+
+        local movementTypes = {"wasd", "arrows", "mouse"}
+        for i, movType in ipairs(movementTypes) do
+            local rectX = contentX + 200 + (i - 1) * 100
+            local rectY = contentY + 490
+            if x >= rectX and x <= rectX + 80 and y >= rectY and y <= rectY + 30 then
+                settings.MOVEMENT_TYPE = movType
                 settingsModal.saveSettings()
                 break
             end
