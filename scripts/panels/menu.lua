@@ -11,7 +11,6 @@ local buttons = {
 }
 
 function menu.load()
-    -- Удалено: menu.font = love.graphics.newFont(24)
 end
 
 function menu.update(dt)
@@ -22,7 +21,7 @@ function menu.draw()
         serverSelector.draw()
     else
         local windowWidth, windowHeight = love.graphics.getDimensions()
-        love.graphics.setFont(globalFont)  -- Используем глобальный шрифт
+        love.graphics.setFont(globalFont)
         for i, button in ipairs(buttons) do
             local buttonWidth = 200
             local buttonHeight = 50

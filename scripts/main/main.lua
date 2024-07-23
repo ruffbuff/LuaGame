@@ -12,6 +12,7 @@ local settingsModal = require("scripts.panels.settings")
 local network = require("scripts.network.network")
 local input = require("scripts.utils.input")
 local cursor = require("scripts.ui.cursor")
+local lobby = require("scripts.panels.lobby")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 local customFont
@@ -36,12 +37,13 @@ function love.load(dt)
         minwidth = 800,
         minheight = 600
     })
-    love.mouse.setVisible(false)  -- Скрыть системный курсор
+    love.mouse.setVisible(false)
 
     love.window.setTitle(settings.GAME_NAME)
     globalFont = love.graphics.newFont(settings.FONT_PATH, settings.FONT_SIZE)
 
     love.graphics.setFont(globalFont)
+    lobby.load()
     tiles.load()
     world.load()
 
@@ -68,26 +70,50 @@ function love.load(dt)
 end
 
 function love.update(dt)
-    local networkStatus = network.update()
+    local networkStatus, data = network.update()
     if networkStatus then
-        if networkStatus == "ID_RECEIVED" or networkStatus == "START" then
-            if gameState ~= "game" then
-                resetGame()
-                gameState = "game"
-            end
+        print("Network status:", networkStatus)
+        if networkStatus == "ID_RECEIVED" then
+            gameState = "waiting"
+        elseif networkStatus == "LOBBY_READY" then
+            gameState = "lobby"
+            lobby.playerCount = data
+            print("Entered lobby with " .. data .. " players")
+        elseif networkStatus == "LOBBY_UPDATE" then
+            print("Received lobby update")
+            print("Lobby timer:", network.lobbyTimer)
+            lobby.updatePlayers(network.lobbyPlayers)
+        elseif networkStatus == "GAME_START" then
+            print("Received GAME_START signal, changing to game state")
+            gameState = "game"
+            resetGame()
+            player.x = data.spawnX
+            player.y = data.spawnY
         end
     end
 
-    cursor.update()  -- Обновление позиции курсора
+    cursor.update()
 
     if gameState == "game" then
-        player.update(dt, camera)
-        camera.update(dt, player.x, player.y, player.size)
+        local networkPlayer = network.players[network.id]
+        if networkPlayer then
+            player.update(dt, camera, networkPlayer)
+            camera.update(dt, networkPlayer.x, networkPlayer.y, player.size)
+        else
+            print("Error: network.players[network.id] is nil")
+        end
     elseif gameState == "menu" then
         menu.update(dt)
+    elseif gameState == "waiting" then
+    elseif gameState == "lobby" then
+        lobby.update(dt)
     elseif gameState == "pause" then
-        player.update(dt, camera)
-        camera.update(dt, player.x, player.y, player.size)
+        if network.id and network.players[network.id] then
+            player.update(dt, camera)
+            camera.update(dt, player.x, player.y, player.size)
+        else
+            print("Error: network.id or network.players[network.id] is nil")
+        end
         pause.update(dt)
     end
 
@@ -98,7 +124,12 @@ end
 
 function love.draw()
     love.graphics.setFont(globalFont)
-    if gameState == "game" then
+    if gameState == "waiting" then
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf("Waiting for players...", 0, love.graphics.getHeight() / 2, love.graphics.getWidth(), "center")
+    elseif gameState == "lobby" then
+        lobby.draw()
+    elseif gameState == "game" then
         camera.set()
         world.draw()
         camera.unset()
@@ -167,7 +198,8 @@ function love.mousepressed(x, y, button)
             end
         end
         
-        if not clickedOnPlayer and settings.MOVEMENT_TYPE == "mouse" and button == 1 then
+        local player = network.players[network.id]
+        if not clickedOnPlayer and player and settings.MOVEMENT_TYPE == "mouse" and button == 1 then
             player.setTarget(worldX, worldY)
         end
     elseif gameState == "menu" then

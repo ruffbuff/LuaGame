@@ -109,7 +109,6 @@ function settingsModal.draw()
         love.graphics.printf("Player settings:", contentX, contentY, modalWidth - 80, "left")
 
         love.graphics.setColor(1, 1, 1)
-        love.graphics.print("Pick Color:", contentX, contentY + 40)
         for i, color in ipairs(settings.playerColors) do
             local rectX = contentX + 200 + (i - 1) * 50
             local rectY = contentY + 30

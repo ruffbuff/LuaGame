@@ -13,30 +13,22 @@ local network = {
     lastPingSent = 0,
     ping = nil,
     connected = false,
+    lobbyPlayers = {},
+    lobbyReady = false
 }
 
 function network.connectToServer(address, port)
     network.address = address
     network.port = port
-    network.udp:setpeername(network.address, network.port)
+    local success, err = network.udp:setpeername(network.address, network.port)
+    if not success then
+        print("Failed to connect to server:", err)
+        return false
+    end
     network.udp:settimeout(0)
     network.udp:send("JOIN")
     network.connected = true
-    print("Connecting to " .. address .. ":" .. port)
-end
-
-function network.setPlayerColor(color)
-    if network.id and network.players[network.id] then
-        network.players[network.id].color = color
-    end
-end
-
-function network.sendPlayerColor(color)
-    if network.id then
-        local message = string.format("COLOR:%d,%s", network.id, color)
-        network.udp:send(message)
-        print("Sent color change message:", message)
-    end
+    return true
 end
 
 function network.update()
@@ -54,32 +46,50 @@ function network.update()
                 local pingTime = tonumber(data:sub(6))
                 network.ping = (currentTime - pingTime) * 1000
             elseif data:sub(1,3) == "ID:" then
-                local id, color = data:match("ID:(%d+),(%w+)")
-                network.id = tonumber(id)
-                settings.playerColor = color
-                network.players[network.id] = {x = 1568, y = 1568, color = color}
-                print("Connected to server with ID: " .. network.id .. " and color: " .. color)
-                return "ID_RECEIVED"
-            elseif data:sub(1, 6) == "COLOR:" then
-                local id, color = data:match("COLOR:(%d+),(%w+)")
-                id = tonumber(id)
-                if network.players[id] then
-                    network.players[id].color = color
-                    if id == network.id then
-                        settings.playerColor = color
+                local id = data:match("ID:(%d+)")
+                if id then
+                    network.id = tonumber(id)
+                    network.players[network.id] = {x = 1568, y = 1568}
+                    print("Connected to server with ID: " .. network.id)
+                    return "ID_RECEIVED"
+                end
+            elseif data:sub(1, 12) == "LOBBY_READY:" then
+                local playerCount = tonumber(data:sub(13))
+                network.lobbyReady = true
+                return "LOBBY_READY", playerCount
+            elseif data:sub(1, 12) == "LOBBY_UPDATE:" then
+                local lobbyTimer, playersData = data:match("LOBBY_UPDATE:(%d+):(.+)")
+                network.lobbyTimer = tonumber(lobbyTimer)
+                network.lobbyPlayers = {}
+                for playerData in playersData:gmatch("[^;]+") do
+                    local id, colorName = playerData:match("(%d+),(%w+)")
+                    id = tonumber(id)
+                    if id and colorName then
+                        network.lobbyPlayers[id] = {colorName = colorName}
+                        if id == network.id then
+                            network.players[network.id].colorName = colorName
+                        end
                     end
                 end
+                return "LOBBY_UPDATE"
+            elseif data:sub(1, 11) == "GAME_START:" then
+                local spawnX, spawnY = data:match("GAME_START:(%d+),(%d+)")
+                spawnX, spawnY = tonumber(spawnX), tonumber(spawnY)
+                if network.players[network.id] then
+                    network.players[network.id].x = spawnX
+                    network.players[network.id].y = spawnY
+                end
+                return "GAME_START", {spawnX = spawnX, spawnY = spawnY}
             elseif data == "START" then
+                print("Received START signal from server")
                 return "START"
             else
                 local newPlayers = {}
                 for playerData in data:gmatch("[^;]+") do
-                    local id, x, y, direction, state, currentFrame, color = playerData:match("(%d+),(%d+),(%d+),(%w+),(%w+),(%d+),(%w+)")
-                    if id and x and y and direction and state and currentFrame and color then
+                    local id, x, y, direction, state, currentFrame, colorName = playerData:match("(%d+),(%d+),(%d+),(%w+),(%w+),(%d+),(%w+)")
+                    if id and x and y and direction and state and currentFrame and colorName then
                         id, x, y, currentFrame = tonumber(id), tonumber(x), tonumber(y), tonumber(currentFrame)
-                        newPlayers[id] = {x = x, y = y, direction = direction, state = state, currentFrame = currentFrame, color = color}
-                    else
-                        print("Invalid player data received: " .. playerData)
+                        newPlayers[id] = {x = x, y = y, direction = direction, state = state, currentFrame = currentFrame, colorName = colorName}
                     end
                 end
                 network.players = newPlayers
@@ -101,7 +111,6 @@ function network.update()
         end
     end
 
-    -- Обновление анимации для всех игроков
     for id, p in pairs(network.players) do
         if p.state ~= "idle" then
             p.animationTimer = (p.animationTimer or 0) + love.timer.getDelta()
@@ -145,6 +154,12 @@ function network.disconnect()
     network.players = {}
     network.connected = false
     print("Disconnected from server")
+end
+
+function network.sendReadyStatus()
+    if network.connected then
+        network.udp:send("PLAYER_READY")
+    end
 end
 
 return network

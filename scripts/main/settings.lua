@@ -1,8 +1,8 @@
 -- scripts/main/settings.lua
 
 local settings = {
-    GAME_VERSION = "0.1.17",
-    GAME_NAME = "LuaGame",
+    GAME_VERSION = "0.1.18",
+    GAME_NAME = "FKingPets",
     FONT_PATH = "fonts/bitByBit/bitbybit_ [Font].ttf",
     FONT_SIZE = 16,
     TILE_SIZE = 64,
@@ -26,15 +26,18 @@ local settings = {
     GRAPPLING_HOOK_DETACH_KEY = "q",
     MOVEMENT_TYPE = "wasd", -- Может быть "wasd", "arrows" или "mouse"
 
-    playerColors = {"red", "blue", "green", "yellow", "purple"},
+    playerColors = {
+        red = {1, 0, 0},
+        blue = {0, 0, 1}
+    },
+    
+    playerColorOrder = {"red", "blue"},
 
     world = {
         width = 50,
         height = 50,
         tileSize = 64,
     },
-
-    playerColor = "red",
 }
 
 return settings

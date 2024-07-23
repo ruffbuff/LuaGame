@@ -197,6 +197,7 @@ function grapplingHook:draw(player)
             tipEndX - math.cos(hookAngle) * 5,
             tipEndY - math.sin(hookAngle) * 5
         )
+        love.graphics.setColor(1, 1, 1, 1)
     end
 
     love.graphics.setLineWidth(1)

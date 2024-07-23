@@ -39,21 +39,21 @@ local player = {
 local function loadAnimations()
     player.animations = {}
 
-    for _, color in ipairs(settings.playerColors) do
-        player.animations[color] = {}
+    for colorName, colorValue in pairs(settings.playerColors) do
+        player.animations[colorName] = {}
         local directions = {"down", "up", "left", "right"}
         for _, dir in ipairs(directions) do
-            player.animations[color][dir] = {
-                idle = love.graphics.newImage("assets/images/" .. color .. "-cat/" .. dir .. "/0.png"),
+            player.animations[colorName][dir] = {
+                idle = love.graphics.newImage("assets/images/" .. colorName .. "-cat/" .. dir .. "/0.png"),
                 walk = {},
                 run = {}
             }
-            player.animations[color][dir].idle:setFilter("nearest", "nearest")
+            player.animations[colorName][dir].idle:setFilter("nearest", "nearest")
             for i = 0, 3 do
-                local frame = love.graphics.newImage("assets/images/" .. color .. "-cat/" .. dir .. "/" .. i .. ".png")
+                local frame = love.graphics.newImage("assets/images/" .. colorName .. "-cat/" .. dir .. "/" .. i .. ".png")
                 frame:setFilter("nearest", "nearest")
-                table.insert(player.animations[color][dir].walk, frame)
-                table.insert(player.animations[color][dir].run, frame)
+                table.insert(player.animations[colorName][dir].walk, frame)
+                table.insert(player.animations[colorName][dir].run, frame)
             end
         end
     end
@@ -147,7 +147,7 @@ function player.updateStateAfterHook()
     player.currentFrame = 1
 end
 
-function player.update(dt, camera)
+function player.update(dt, camera, networkPlayer)
     if player.currentItem and player.currentItem.state ~= "idle" then
         player.isHooking = true
         player.state = "hook"
@@ -278,11 +278,17 @@ function player.draw(camera)
         local direction = p.direction or "down"
         local state = p.state or "idle"
         local currentFrame = p.currentFrame or 1
-        local color = p.color or "red"
-        local animation = player.animations[color][direction]
+        local colorName = p.colorName or nil
+        
+        if not colorName or not settings.playerColors[colorName] then
+            print("Warning: Invalid color for player " .. id .. ": " .. tostring(colorName))
+            colorName = "red"
+        end
+        
+        local animation = player.animations[colorName][direction]
         local image
 
-        if state == "hook" and color == "red" then
+        if state == "hook" and colorName == "red" then
             image = player.animations["red"].hook[p.hookAnimationFrame or 1]
         else
             image = (state == "idle") and animation.idle or animation[state][currentFrame]
@@ -296,37 +302,20 @@ function player.draw(camera)
 
         love.graphics.draw(image, drawX, drawY, 0, drawScale, drawScale)
 
+        love.graphics.setColor(1, 1, 1, 1)
+
         if debug.isEnabled() then
             love.graphics.setColor(1, 0, 0, 0.5)
             love.graphics.rectangle('line', p.x + player.colliderOffset, p.y + player.colliderOffset, player.colliderSize, player.colliderSize)
+            love.graphics.setColor(1, 1, 1, 1)
         end
     end
+
+    love.graphics.setColor(1, 1, 1, 1)
 
     if player.currentItem then
         player.currentItem:draw(player)
     end
-
-    -- SHADERS:
-    -- local screenWidth, screenHeight = love.graphics.getDimensions()
-    -- local baseRadius = 5 * settings.TILE_SIZE
-    -- local scaleFactor = math.min(screenWidth, screenHeight) / math.min(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
-    -- local adjustedRadius = baseRadius * scaleFactor
-    -- love.graphics.setBlendMode('add')
-    -- love.graphics.setColor(0.8, 0.6, 0.2, 0.2)
-    -- local glowRadius = adjustedRadius * 1.2
-    -- love.graphics.circle('fill', player.x + player.size / 2, player.y + player.size / 2, glowRadius)
-    -- love.graphics.setBlendMode('alpha')
-
-    -- love.graphics.setShader(darknessShader)
-    -- local playerScreenX = player.x + player.size / 2 - camera.x
-    -- local playerScreenY = player.y + player.size / 2 - camera.y
-    -- darknessShader:send("playerPos", {playerScreenX, playerScreenY})
-    -- darknessShader:send("radius", baseRadius)
-    -- darknessShader:send("screenSize", {screenWidth, screenHeight})
-    -- darknessShader:send("glowColor", {0.8, 0.6, 0.2})
-    -- love.graphics.setColor(0, 0, 0, 1)
-    -- love.graphics.rectangle('fill', camera.x, camera.y, camera.width, camera.height)
-    -- love.graphics.setShader()
 
     -- WORLD GRID
     if debug.isEnabled() then
