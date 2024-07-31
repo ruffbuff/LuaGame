@@ -1,9 +1,11 @@
 -- scripts/world/world.lua
+
 local settings = require("scripts.main.settings")
 local tiles = require("scripts.world.tiles")
 local player = require("scripts.player.player")
 local camera = require("scripts.player.camera")
 local debug = require("scripts.main.debug")
+local network = require("scripts.network.network")
 
 local world = {
     map = {}
@@ -11,10 +13,14 @@ local world = {
 
 function world.load()
     world.map = tiles.generateMap()
-    local centerX = math.floor(settings.WORLD_WIDTH / 2) * settings.TILE_SIZE
-    local centerY = math.floor(settings.WORLD_HEIGHT / 2) * settings.TILE_SIZE
-    player.x = centerX
-    player.y = centerY
+    tiles.map = world.map
+    
+    local spawnPoint = settings.MAP.SPAWN_POINTS[1]
+    if network.id then
+        spawnPoint = settings.MAP.SPAWN_POINTS[network.id] or spawnPoint
+    end
+    player.x = (spawnPoint.x - 1) * settings.TILE_SIZE + settings.TILE_SIZE / 2
+    player.y = (spawnPoint.y - 1) * settings.TILE_SIZE + settings.TILE_SIZE / 2
 end
 
 function world.update(dt)
@@ -22,6 +28,7 @@ end
 
 function world.draw()
     love.graphics.setColor(1, 1, 1, 1)
+    tiles.draw(world.map)
     player.draw(camera)
     
     if debug.isEnabled() then

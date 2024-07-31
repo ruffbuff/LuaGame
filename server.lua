@@ -16,7 +16,7 @@ local server = {
     gameStarted = false,
     lastUpdate = socket.gettime(),
     chatMessages = {},
-    lobbyTimer = 60,
+    lobbyTimer = 10,
     lobbyTimerLastUpdate = 0
 }
 
@@ -116,7 +116,7 @@ function server.startLobby()
     print("Starting lobby with " .. #server.clients .. " players")
     server.gameStarted = true
     server.gameInProgress = false
-    server.lobbyTimer = 30
+    server.lobbyTimer = 10
 
     local colors = {"red", "blue"}
     math.randomseed(os.time())

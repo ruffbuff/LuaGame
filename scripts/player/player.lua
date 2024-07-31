@@ -13,7 +13,7 @@ local player = {
     y = 1568,
     velocityX = 0,
     velocityY = 0,
-    size = settings.TILE_SIZE,
+    size = settings.PLAYER_SIZE,
     colliderSize = settings.TILE_SIZE * 0.8,
     colliderOffset = settings.TILE_SIZE * 0.1,
     currentSpeed = 0,
@@ -240,7 +240,12 @@ function player.update(dt, camera, networkPlayer)
     local newX = player.x + dx * currentSpeed * dt
     local newY = player.y + dy * currentSpeed * dt
 
-    player.x, player.y = resolveCollision(newX, newY)
+    if not tiles.checkCollision(newX, player.y, player.size) then
+        player.x = newX
+    end
+    if not tiles.checkCollision(player.x, newY, player.size) then
+        player.y = newY
+    end
 
     player.currentSpeed = math.sqrt((player.x - oldX)^2 + (player.y - oldY)^2) / dt
 

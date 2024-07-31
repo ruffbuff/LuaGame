@@ -87,8 +87,11 @@ function love.update(dt)
             print("Received GAME_START signal, changing to game state")
             gameState = "game"
             resetGame()
-            player.x = data.spawnX
-            player.y = data.spawnY
+            local spawnPoint = settings.MAP.SPAWN_POINTS[network.id] or settings.MAP.SPAWN_POINTS[1]
+            player.x = (spawnPoint.x - 1) * settings.TILE_SIZE + settings.TILE_SIZE / 2
+            player.y = (spawnPoint.y - 1) * settings.TILE_SIZE + settings.TILE_SIZE / 2
+            network.players[network.id].x = player.x
+            network.players[network.id].y = player.y
         end
     end
 
