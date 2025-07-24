@@ -1,7 +1,7 @@
 -- scripts/main/settings.lua
 
 local settings = {
-    GAME_VERSION = "0.1.17",
+    GAME_VERSION = "1.0.0",
     GAME_NAME = "LuaGame",
     FONT_PATH = "fonts/bitByBit/bitbybit_ [Font].ttf",
     FONT_SIZE = 16,
