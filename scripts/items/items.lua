@@ -200,6 +200,7 @@ function grapplingHook:draw(player)
     end
 
     love.graphics.setLineWidth(1)
+    love.graphics.setColor(1, 1, 1, 1)  -- Сбрасываем цвет к белому
 end
 
 items.grapplingHook = grapplingHook

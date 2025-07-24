@@ -8,8 +8,13 @@ tiles.gardenBedImage = nil
 tiles.waterDropImage = nil
 
 function tiles.load()
-    tiles.images[1] = love.graphics.newImage("assets/tiles/1.png")
-    tiles.images[1]:setFilter("nearest", "nearest")
+    -- Загружаем разные тайлы для создания интересной карты
+    local tileTypes = {1, 2, 3, 4, 5, 10, 15, 20, 25, 30}  -- Основные тайлы
+    
+    for _, tileId in ipairs(tileTypes) do
+        tiles.images[tileId] = love.graphics.newImage("assets/tiles/" .. tileId .. ".png")
+        tiles.images[tileId]:setFilter("nearest", "nearest")
+    end
     
     -- Загрузка изображения грядки
     tiles.gardenBedImage = love.graphics.newImage("assets/items/weed/0.png")
@@ -24,20 +29,54 @@ end
 
 function tiles.generateMap()
     local map = {}
+    local centerX = math.floor(settings.WORLD_WIDTH / 2)
+    local centerY = math.floor(settings.WORLD_HEIGHT / 2)
+    
+    -- Создаём базовую карту с травой (тип 1)
     for y = 1, settings.WORLD_HEIGHT do
         map[y] = {}
         for x = 1, settings.WORLD_WIDTH do
+            local distanceFromCenter = math.sqrt((x - centerX)^2 + (y - centerY)^2)
+            local tileType = 1  -- По умолчанию трава
+            
+            -- Создаём зоны с разными тайлами
+            if distanceFromCenter < 3 then
+                tileType = 3  -- Центральная зона
+            elseif distanceFromCenter < 8 then
+                -- Случайный выбор между несколькими типами
+                local rand = love.math.random()
+                if rand < 0.3 then
+                    tileType = 2
+                elseif rand < 0.6 then
+                    tileType = 4
+                else
+                    tileType = 1
+                end
+            elseif distanceFromCenter < 12 then
+                tileType = love.math.random() < 0.5 and 5 or 1
+            else
+                -- Внешние области - более "дикие" тайлы
+                local rand = love.math.random()
+                if rand < 0.2 then
+                    tileType = 10
+                elseif rand < 0.4 then
+                    tileType = 15
+                elseif rand < 0.6 then
+                    tileType = 20
+                else
+                    tileType = 1
+                end
+            end
+            
             map[y][x] = {
-                type = 1,
+                type = tileType,
                 isGardenBed = false,
                 isWatered = false
             }
         end
     end
     
-    -- Создание нескольких грядок рядом со спавном игрока
-    local centerX = math.floor(settings.WORLD_WIDTH / 2)
-    local centerY = math.floor(settings.WORLD_HEIGHT / 2)
+    -- Создание нескольких грядок рядом со спавном игрока  
     local gardenBedPositions = {
         {x = centerX - 3, y = centerY - 3},
         {x = centerX + 3, y = centerY - 3},
@@ -48,31 +87,48 @@ function tiles.generateMap()
     for _, pos in ipairs(gardenBedPositions) do
         if map[pos.y] and map[pos.y][pos.x] then
             map[pos.y][pos.x].isGardenBed = true
-            print("Грядка создана на позиции: ", pos.x, pos.y)
         end
     end
     
     return map
 end
 
-function tiles.checkCollision(x, y)
+function tiles.checkCollision(x, y, size)
     local tileX = math.floor(x / settings.TILE_SIZE) + 1
     local tileY = math.floor(y / settings.TILE_SIZE) + 1
 
-    return tileX < 1 or tileX > settings.WORLD_WIDTH or tileY < 1 or tileY > settings.WORLD_HEIGHT
+    -- Проверяем границы мира
+    if tileX < 1 or tileX > settings.WORLD_WIDTH or tileY < 1 or tileY > settings.WORLD_HEIGHT then
+        return true
+    end
+    
+    -- Проверяем коллизию с постройками (только если передан размер)
+    if size then
+        local buildings = require("scripts.world.buildings")
+        if buildings.checkCollision(x + size/2, y + size/2, size) then
+            return true
+        end
+    end
+
+    return false
 end
 
 function tiles.draw(map)
     for y = 1, settings.WORLD_HEIGHT do
         for x = 1, settings.WORLD_WIDTH do
-            love.graphics.draw(
-                tiles.images[1],
-                (x-1) * settings.TILE_SIZE,
-                (y-1) * settings.TILE_SIZE,
-                0,
-                settings.TILE_SIZE / tiles.images[1]:getWidth(),
-                settings.TILE_SIZE / tiles.images[1]:getHeight()
-            )
+            local tileType = map[y][x].type
+            local tileImage = tiles.images[tileType]
+            
+            if tileImage then
+                love.graphics.draw(
+                    tileImage,
+                    (x-1) * settings.TILE_SIZE,
+                    (y-1) * settings.TILE_SIZE,
+                    0,
+                    settings.TILE_SIZE / tileImage:getWidth(),
+                    settings.TILE_SIZE / tileImage:getHeight()
+                )
+            end
             
             -- Отрисовка грядки
             if map[y][x].isGardenBed then
@@ -84,7 +140,6 @@ function tiles.draw(map)
                     2,  -- Увеличиваем размер в 2 раза по ширине
                     2   -- Увеличиваем размер в 2 раза по высоте
                 )
-                print("Отрисовка грядки на позиции: ", x, y)
                 
                 -- Отрисовка капли воды, если грядка полита
                 if map[y][x].isWatered then
@@ -96,7 +151,6 @@ function tiles.draw(map)
                         1,  -- Оставляем оригинальный размер
                         1
                     )
-                    print("Отрисовка капли на позиции: ", x, y)
                 end
             end
         end

@@ -12,6 +12,8 @@ local settingsModal = require("scripts.panels.settings")
 local network = require("scripts.network.network")
 local input = require("scripts.utils.input")
 local cursor = require("scripts.ui.cursor")
+local survival = require("scripts.player.survival")
+local inventory = require("scripts.player.inventory")
 
 local gameState = "menu"  -- "menu", "waiting", "game", "pause"
 local customFont
@@ -70,10 +72,13 @@ end
 function love.update(dt)
     local networkStatus = network.update()
     if networkStatus then
+        print("Network status received:", networkStatus)
         if networkStatus == "ID_RECEIVED" or networkStatus == "START" then
             if gameState ~= "game" then
+                print("Switching to game state")
                 resetGame()
                 gameState = "game"
+                print("Game state set to:", gameState)
             end
         end
     end
@@ -83,11 +88,13 @@ function love.update(dt)
     if gameState == "game" then
         player.update(dt, camera)
         camera.update(dt, player.x, player.y, player.size)
+        world.update(dt)
     elseif gameState == "menu" then
         menu.update(dt)
     elseif gameState == "pause" then
         player.update(dt, camera)
         camera.update(dt, player.x, player.y, player.size)
+        world.update(dt)
         pause.update(dt)
     end
 
@@ -102,6 +109,8 @@ function love.draw()
         camera.set()
         world.draw()
         camera.unset()
+        survival.drawUI()  -- UI отрисовывается после camera.unset()
+        inventory.drawUI()  -- Инвентарь поверх всего
         debug.draw(player, network, gameState)
     elseif gameState == "menu" then
         menu.draw()
@@ -109,6 +118,8 @@ function love.draw()
         camera.set()
         world.draw()
         camera.unset()
+        survival.drawUI()  -- UI и в режиме паузы тоже
+        inventory.drawUI()  -- Инвентарь и в паузе
         pause.draw()
         if settingsModal.active then
             settingsModal.draw()
@@ -116,6 +127,11 @@ function love.draw()
         if debug.isEnabled() then
             debug.draw(player, network, gameState)
         end
+    -- else
+    --     -- Debug: показываем текущее состояние если оно не распознано
+    --     love.graphics.print("Current gameState: " .. tostring(gameState), 10, 10)
+    --     love.graphics.print("Network connected: " .. tostring(network.connected), 10, 30)
+    --     love.graphics.print("Network ID: " .. tostring(network.id), 10, 50)
     end
     cursor.draw()
 end
@@ -138,8 +154,25 @@ function love.keypressed(key)
             end
         elseif key == settings.FULLSCREEN_TOGGLE_KEY then
             love.window.setFullscreen(not love.window.getFullscreen())
+        elseif key == "tab" then
+            inventory.toggle()
         elseif gameState == "game" then
-            input.keypressed(key)
+            -- Система строительства
+            if key == "1" then
+                -- Костёр
+                local worldX, worldY = camera:mousePosition()
+                world.buildStructure("campfire", worldX, worldY, inventory)
+            elseif key == "2" then
+                -- Стена
+                local worldX, worldY = camera:mousePosition()
+                world.buildStructure("wall", worldX, worldY, inventory)
+            elseif key == "3" then
+                -- Грядка
+                local worldX, worldY = camera:mousePosition()
+                world.buildStructure("garden_bed", worldX, worldY, inventory)
+            else
+                input.keypressed(key)
+            end
         end
     end
 end

@@ -3,7 +3,7 @@
 local serverSelector = {
     active = false,
     servers = {
-        {name = "Local Server", address = "localhost", port = 12345},
+        {name = "Local Server", address = "127.0.0.1", port = 12345},
         {name = "Empty Slot", address = nil, port = nil},
         {name = "Empty Slot", address = nil, port = nil}
     },

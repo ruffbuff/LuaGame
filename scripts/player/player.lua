@@ -7,6 +7,9 @@ local debug = require("scripts.main.debug")
 local items = require("scripts.items.items")
 local darknessShader = require("scripts.shaders.darkness")
 local camera = require("scripts.player.camera")
+local survival = require("scripts.player.survival")
+local resources = require("scripts.world.resources")
+local inventory = require("scripts.player.inventory")
 
 local player = {
     x = 1568,
@@ -74,6 +77,7 @@ end
 function player.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
     loadAnimations()
+    survival.load()
 end
 
 local function resolveCollision(newX, newY)
@@ -234,6 +238,7 @@ function player.update(dt, camera)
     end
 
     local speedMultiplier = love.keyboard.isDown(settings.MOVE_FAST_KEY) and player.fastMultiplier or 1
+    speedMultiplier = speedMultiplier * survival.getSpeedMultiplier()  -- учитываем голод/жажду
     local currentSpeed = player.baseSpeed * speedMultiplier
 
     local oldX, oldY = player.x, player.y
@@ -270,6 +275,31 @@ function player.update(dt, camera)
             player.otherPlayers[id] = p
         end
     end
+    
+    -- Обновляем survival систему
+    survival.update(dt)
+    
+    -- Проверяем сбор ресурсов
+    local collectedResources = resources.checkCollection(player.x + player.size/2, player.y + player.size/2, player.size/2)
+    for _, resource in ipairs(collectedResources) do
+        local resourceData = resources.types[resource.type]
+        if resourceData then
+            if resourceData.consumable then
+                if resourceData.effect == "food" then
+                    survival.eat(resourceData.value)
+                elseif resourceData.effect == "drink" then
+                    survival.drink(resourceData.value)
+                end
+            else
+                -- Добавляем в инвентарь
+                if inventory.add(resource.type, resourceData.value) then
+                    print("Собрал " .. resourceData.name .. "! Всего: " .. inventory.getCount(resource.type))
+                else
+                    print("Инвентарь полон!")
+                end
+            end
+        end
+    end
 end
 
 function player.draw(camera)
@@ -285,7 +315,15 @@ function player.draw(camera)
         if state == "hook" and color == "red" then
             image = player.animations["red"].hook[p.hookAnimationFrame or 1]
         else
-            image = (state == "idle") and animation.idle or animation[state][currentFrame]
+            if state == "idle" then
+                image = animation.idle
+            elseif animation[state] and animation[state][currentFrame] then
+                image = animation[state][currentFrame]
+            else
+                -- Защита: если анимация не найдена, используем idle
+                print("Warning: animation not found for state:", state, "color:", color, "direction:", direction)
+                image = animation.idle
+            end
         end
 
         local drawScale = settings.PLAYER_SPRITE_SCALE
@@ -338,6 +376,8 @@ function player.draw(camera)
             love.graphics.line(0, y * settings.TILE_SIZE, settings.WORLD_WIDTH * settings.TILE_SIZE, y * settings.TILE_SIZE)
         end
     end
+    
+    -- Убираем отрисовку UI отсюда, так как это внутри camera координат
 end
 
 return player

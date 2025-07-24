@@ -12,6 +12,8 @@ local camera = {
 }
 
 function camera.load(playerX, playerY, playerSize)
+    camera.width = love.graphics.getWidth()
+    camera.height = love.graphics.getHeight()
     camera.x = playerX - camera.width / 2 + playerSize / 2
     camera.y = playerY - camera.height / 2 + playerSize / 2
 end
@@ -23,8 +25,16 @@ function camera.update(dt, playerX, playerY, playerSize)
     camera.x = camera.x + (targetX - camera.x) * camera.smoothness
     camera.y = camera.y + (targetY - camera.y) * camera.smoothness
 
-    camera.x = math.max(0, math.min(camera.x, settings.WORLD_WIDTH * settings.TILE_SIZE - camera.width))
-    camera.y = math.max(0, math.min(camera.y, settings.WORLD_HEIGHT * settings.TILE_SIZE - camera.height))
+    -- Обновляем размеры камеры на случай изменения окна
+    camera.width = love.graphics.getWidth()
+    camera.height = love.graphics.getHeight()
+    
+    -- Ограничиваем камеру границами мира с небольшим запасом
+    local worldWidth = settings.WORLD_WIDTH * settings.TILE_SIZE
+    local worldHeight = settings.WORLD_HEIGHT * settings.TILE_SIZE
+    
+    camera.x = math.max(-camera.width * 0.1, math.min(camera.x, worldWidth - camera.width * 0.9))
+    camera.y = math.max(-camera.height * 0.1, math.min(camera.y, worldHeight - camera.height * 0.9))
 end
 
 function camera.set()
